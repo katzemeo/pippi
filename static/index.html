@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS & Material Icons -->
+  <!--
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  -->
+  <link href="/public/css/bootstrap.css" rel="stylesheet">
+  <link href="/public/css/MaterialIcons.css" rel="stylesheet">
+  <style>
+    i.custom {
+      font-size: 1em;
+      color: #36454f;
+    }
+
+    i.warning {
+      font-size: 1em;
+      color: #FFA900;
+    }
+
+    i.row {
+      font-size: 1.1em;
+      color: #262626;
+      cursor: pointer;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    i.navitem {
+      padding-top: 4px;
+      font-size: 1.8em;
+      color: whitesmoke;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    .clickable {
+      cursor: pointer;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    th {
+      cursor: pointer;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+  </style>
+
+  <link rel="icon" href="/public/favicon.ico">
+  <title id="title">Pippi v0.1</title>
+</head>
+
+<body oncontextmenu="return false;" style="padding-bottom: 55px;">
+  <!-- Option 1: Bootstrap Bundle with Popper -->
+  <!--
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+    crossorigin="anonymous"></script>
+  -->
+  <script src="/public/bootstrap.bundle.min.js"></script>
+  <script src="/public/main.js"></script>
+
+  <!-- Header -->
+  <nav class="navbar sticky-top navbar-expand navbar-dark bg-dark">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarToggler">
+        <ul class="navbar-nav mb-2 mb-lg-0">
+          <li class="nav-item">
+            <span data-bs-toggle="modal" data-bs-target="#uploadFile">
+              <a class="btn btn-primary mx-1" href="#" role="button" title="Upload" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                <i class="material-icons row">upload</i>
+              </a>
+            </span>
+          </li>
+          <li class="nav-item">
+            <button id="save_to_local" class="btn btn-light mx-1" onclick="saveToStorage(true)" title="Save Locally" data-bs-toggle="tooltip" data-bs-placement="bottom">
+              <i class="material-icons row">save</i>
+            </button>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Team
+            </a>
+            <ul id="teams" class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+            </ul>
+          </li>
+        </ul>
+
+        <div class="d-flex">
+          <button id="delete_storage" class="btn btn-light mx-1" onclick="deleteLocalStorage()"
+            title="Delete All" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">delete</i>
+          </button>
+          <button id="copy_to_clipboard" class="btn btn-light mx-1" onclick="copyItems()"
+            title="Copy to Clipboard" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">content_copy</i>
+          </button>
+        </div>
+        <div class="d-flex me-auto mx-1">
+          <span class="text-light fs-5" id="team_name"></span>
+        </div>
+        <div class="d-flex ">
+          <button id="show_completed" class="btn btn-success mx-1 disabled" onclick="showCompleted('global_search')"
+            title="Show Completed" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">done</i>
+          </button>
+          <button id="show_pending" class="btn btn-warning mx-1 disabled" onclick="showPending('global_search')"
+            title="Show Pending" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">pending</i>
+          </button>
+          <button id="show_blocked" class="btn btn-danger mx-1 disabled" onclick="showBlocked('global_search')"
+            title="Show Blocked" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">warning_amber</i>
+          </button>
+        </div>
+
+        <div class="d-flex">
+          <span class="nav-item"><i class="material-icons navitem">search</i></span>
+          <input class="form-control me-2" maxlength="20" type="search" placeholder="Search" aria-label="Search" id="global_search"
+            onchange="searchKey('global_search')" onkeyup="searchKey('global_search')" onsearch="searchKey('global_search')">
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Table -->
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <table class="table table-striped align-middle table-sm">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><input class="form-check-input" id="selectTeamCB" title="Select All" onchange="toggleSelection(this.checked)" type="checkbox" value="" /></th>
+              <th onclick="sortBy('theme')">Theme</th>
+              <th onclick="sortBy('priority')">P</th>
+              <th onclick="sortBy('summary')">Summary</th>
+              <th onclick="sortBy('type')">Type</th>
+              <th onclick="sortBy('progress')">Progress</th>
+              <th onclick="sortBy('status')">Status</th>
+              <th onclick="sortBy('computed_team_pct')">Team %</th>
+            </tr>
+          </thead>
+          <tbody id="items" />
+        </table>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col align-self-center">
+        <div class="row">
+          <div class="col-3">
+            <a target="pippi" href="#"
+              title="Pippi = PI > Plan > PI" data-bs-toggle="tooltip" data-bs-placement="top">
+              <img src="/public/usericon.png" alt="Product Owner" width="64" height="64">
+            </a>
+          </div>
+        </div>
+        <div class="row justify-content-left">
+          <div class="col align-self-center" style="margin-top: 0.8em;">
+            <nobr class="clickable" onclick="toggleEditSPDayRate('sp_per_day_rate', 'sp_per_day_input')">
+              <span class="fs-6">SP per Day</span>
+              <i class="material-icons custom">edit</i>
+            </nobr>
+            <input id="sp_per_day_input" maxlength="10" style="display:none"
+              onchange="updateSPDayRate('sp_per_day_rate', 'sp_per_day_input', true)"
+              onkeyup="updateSPDayRate('sp_per_day_rate', 'sp_per_day_input', false)" />
+            <div id="sp_per_day_rate" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col text-center">
+      <span id="team_status" class="fs-4"></span>
+      <p id="team_remaining"></p>
+      <p id="team_date" class="h5 text-muted"></p>
+    </div>
+
+    <div class="col text-end">
+      <span class="fs-4">Completed (SP)</span>
+      <div id="team_completed" />
+    </div>
+    <div class="col text-end">
+      <span class="fs-4">Total (SP)</span>
+      <div id="team_total" />
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <nav class="navbar fixed-bottom navbar-light bg-light">
+    <div class="input-group">
+      <span class="input-group-text text-primary" id="message-prefix">Message</span>
+      <input type="text" class="form-control" id="message-text" aria-label="Message" readonly />
+      <span class="input-group-text text-muted" id="message-stats">Selection</span>
+      <span class="input-group-text text-muted" id="message-percent">%</span>
+    </div>
+  </nav>
+
+  <!-- Modal: Upload dialog -->
+  <div class="modal fade" id="uploadFile" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="uploadFileLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="uploadFileLabel">Upload Team Information</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group mb-3">
+            <span class="input-group-text">Please choose a JSON file to upload (max. size of 500KB)</span>
+          </div>
+          <div class="input-group mb-3">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="uploadRadioOptions" id="itemsRadio" value="items" checked>
+              <label class="form-check-label" for="itemsRadio">File contains Team / Squad Items</label>
+            </div>
+          </div>
+          <div class="input-group mb-3">
+            <input type="file" class="form-control" id="file" accept=".json">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="uploadJSONFile(document.querySelector('input[name = uploadRadioOptions]:checked').value)">Upload</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Children dialog -->
+  <div class="modal fade" id="itemChildren" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="itemChildrenLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="childrenItemsLabel">Children Items</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="container" style="overflow-y: auto; min-height: 70vh; max-height: 70vh;">
+            <table class="table table-striped align-middle table-sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th onclick="sortChildrenBy('jira')">ID</th>
+                  <th onclick="sortChildrenBy('summary')">Summary</th>
+                  <th onclick="sortChildrenBy('sprint')">Sprint</th>
+                  <th onclick="sortChildrenBy('type')">Type</th>
+                  <th onclick="sortChildrenBy('status')">Status</th>
+                  <th onclick="sortChildrenBy('estimate')">SP</th>
+                </tr>
+              </thead>
+              <tbody id="children_items" />
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="container">
+            <div class="d-flex">
+              <div class="col" style="padding-top: 4px;">
+                <i class="material-icons">search</i>
+              </div>
+              <div class="col">
+                <input class="form-control me-2" maxlength="20" type="search" placeholder="Search" aria-label="Search" id="children_search"
+                  onchange="searchChildrenKey('children_search')" onkeyup="searchChildrenKey('children_search')" onsearch="searchChildrenKey('children_search')">
+              </div>
+              <div class="col">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
