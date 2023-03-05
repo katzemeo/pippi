@@ -157,6 +157,7 @@
               <th><input class="form-check-input" id="selectTeamCB" title="Select All" onchange="toggleSelection(this.checked)" type="checkbox" value="" /></th>
               <th onclick="sortBy('theme')">Theme</th>
               <th onclick="sortBy('priority')">P</th>
+              <th onclick="sortBy('jira')">Jira</th>
               <th onclick="sortBy('summary')">Summary</th>
               <th onclick="sortBy('type')">Type</th>
               <th onclick="sortBy('progress')">Progress</th>
@@ -172,7 +173,7 @@
     <div class="row">
       <div class="col align-self-center">
         <div class="row">
-          <div class="col-3">
+          <div class="col">
             <a target="pippi" href="#"
               title="Pippi = PI > Plan > PI" data-bs-toggle="tooltip" data-bs-placement="top">
               <img src="/public/usericon.png" alt="Product Owner" width="64" height="64">
@@ -252,19 +253,19 @@
 
   <!-- Modal: Children dialog -->
   <div class="modal fade" id="itemChildren" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="itemChildrenLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-dialog modal-fullscreen modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="childrenItemsLabel">Children Items</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="container" style="overflow-y: auto; min-height: 70vh; max-height: 70vh;">
+          <div class="container" style="overflow-y: auto; min-height: 80vh; max-height: 80vh;">
             <table class="table table-striped align-middle table-sm">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th onclick="sortChildrenBy('jira')">ID</th>
+                  <th onclick="sortChildrenBy('jira')">Jira</th>
                   <th onclick="sortChildrenBy('summary')">Summary</th>
                   <th onclick="sortChildrenBy('sprint')">Sprint</th>
                   <th onclick="sortChildrenBy('type')">Type</th>
@@ -278,7 +279,10 @@
         </div>
         <div class="modal-footer">
           <div class="container">
-            <div class="d-flex">
+            <div class="d-flex justify-content-center">
+              <div>
+                <h5 id="parentItemLabel">Parent Status</h5>
+              </div>  
               <div class="col" style="padding-top: 4px;">
                 <i class="material-icons">search</i>
               </div>

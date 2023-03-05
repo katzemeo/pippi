@@ -1,3 +1,4 @@
+const JIRA_URL = "https://localhost:8000/browse/";
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
@@ -19,12 +20,8 @@ var _teams = {};
 var _teamName = null;
 var _SPDayRate = DEFAULT_SP_DAY_RATE;
 
-// Items with support for filter and sort
-var _columns = ["theme", "priority", "summary", "type", "client", "progress", "status", "computed_team_pct", "computed_unassigned"];
+// Application UI related state
 var _sortOrders = {};
-_columns.forEach(function (key) {
-  _sortOrders[key] = 1;
-});
 var _sortKey = "";
 var _filterKey = null;
 var _team = EMPTY_TEAM;
@@ -128,7 +125,7 @@ function formatTime(dt, timeZone = TIME_ZONE) {
 
 function sortBy(key) {
   _sortKey = key;
-  _sortOrders[key] = _sortOrders[key] * -1;
+  _sortOrders[key] = (!_sortOrders[key] ? 1 : _sortOrders[key]) * -1;
   renderItems();
 }
 
@@ -717,14 +714,29 @@ function createPriorityLink(item) {
   return markup;
 }
 
+function createJiraAnchor(item) {
+  let className = "text-primary";
+  if (item.type === "FEAT" || item.type === "EPIC") {
+    className += " text-decoration-underline";
+  }
+  return `<a class="${className} text-decoration-none" href="${JIRA_URL}${item.jira}">${item.jira}</a>`;
+}
+
+function createJiraLink(item) {
+  let markup = `<div class="row">`;
+  if (item.jira) {
+    markup += `<div class="col">${createJiraAnchor(item)}</div>`;
+  }
+  markup += `</div>`;
+
+  return markup;
+}
+
 function createSummaryLink(item) {
   let markup = `<div class="row">`;
   if (item.children) {
     let className = "text-primary";
-    markup += `<div class="col">
-      <a class="${className} text-decoration-none" href="javascript:showChildren('${item.jira}')">
-        ${item.summary}
-      </a>
+    markup += `<div class="col"><a class="${className} text-decoration-none" href="javascript:showChildren('${item.jira}')">${item.summary}</a>
     </div>`;
   } else {
     markup += `<div class="col"><nobr>${item.summary}</nobr></div>`;
@@ -785,14 +797,16 @@ function renderItems() {
       cell.className = "text-muted";
 
       cell = renderCell(row, item.theme);
-      if (item.jira) {
-        cell.title = item.jira;
+      if (item.t_shirt_size) {
+        cell.title = item.t_shirt_size;
       }
 
       cell = renderCell(row, createPriorityLink(item));
       if (item.client) {
         cell.title = item.client;
       }
+
+      cell = renderCell(row, createJiraLink(item));
 
       cell = renderCell(row, createSummaryLink(item));
       if (item.description) {
@@ -809,17 +823,19 @@ function renderItems() {
       }
 
       if (item.progress) {
-        cell = renderCell(row, `${PCT(item.progress)}%`);
-        cell.title = "Completed: " + EFF(convertToSP(item.completed, item.unit)) + " SP, "+ "Remaining: " + EFF(convertToSP(item.remaining, item.unit)) + " SP";
+        const completed = EFF(convertToSP(item.completed, item.unit));
+        cell = renderCell(row, `${PCT(item.progress)}% (${completed} SP)`);
+        cell.title = "Remaining: " + EFF(convertToSP(item.remaining, item.unit)) + " SP";
       } else {
         cell = renderCell(row, "");
       }
 
       let note = "";
-      let noteTitle = "Effort: " + EFF(convertToSP(item.computed_effort, item.unit)) + " SP";
-      if (item.computed_effort > item.estimate) {
+      const effort = EFF(convertToSP(item.computed_effort, item.unit));
+      let noteTitle = "";
+      if (item.estimate && item.computed_effort > item.estimate) {
         note = "*";
-        noteTitle += ", Over: "+ EFF(convertToSP(item.computed_effort - item.estimate, item.unit)) +" SP";
+        noteTitle += "Over Estimate: "+ EFF(convertToSP(item.computed_effort - item.estimate, item.unit)) +" SP";
       }
       cell = renderCell(row, item.status+note);
       if (item.status === "COMPLETED") {
@@ -835,7 +851,7 @@ function renderItems() {
       cell.title = noteTitle;
 
       if (item.computed_effort > 0) {
-        cell = renderCell(row, PCT(item.computed_team_pct) + "%");
+        cell = renderCell(row, `${PCT(item.computed_team_pct)}% (${effort} SP)`);
       } else {
         cell = renderCell(row, "");
       }
@@ -942,10 +958,30 @@ function showChildren(parentJira) {
 
   const label = document.getElementById("childrenItemsLabel");
   removeChildren(label);
-  label.innerHTML = `${parentJira} - ${parent.summary}`;
+  label.innerHTML = `${createJiraAnchor(parent)} (${parent.t_shirt_size}: ${parent.computed_effort} ${parent.unit}) - ${parent.summary}`;
+
+  const statusEl = document.getElementById("parentItemLabel");
+  removeChildren(statusEl);
+
+  let progress = "";
+  if (parent.progress) {
+    const completed = EFF(convertToSP(parent.completed, parent.unit));
+    progress = ` - ${PCT(parent.progress)}% (${completed} SP) Completed`;
+  }
+
+  statusEl.innerHTML = `${parent.status}${progress}`;
+  if (parent.status === "COMPLETED") {
+    statusEl.style = GREEN;
+  } else if (parent.status === "INPROGRESS") {
+    statusEl.style = AMBER;
+  } else if (parent.status === "PENDING") {
+    statusEl.style = AMBER;
+  } else if (parent.status === "BLOCKED") {
+    statusEl.style = RED;
+  }
 
   document.getElementById("children_search").value = "";
-  _childFilterKey = null;
+  _childrenFilterKey = null;
   renderChildrenItems();
 
   modal.show();
@@ -963,13 +999,31 @@ function renderChildrenItems() {
     row = document.createElement("tr");
     cell = renderCell(row, n);
     cell.className = "text-muted";
-    cell = renderCell(row, item.jira);
+
+    cell = renderCell(row, createJiraLink(item));
+    if (item.parent_jira) {
+      cell.title = `Parent: ${item.parent_jira}`;
+    }
+
     cell = renderCell(row, item.summary);
     if (item.description) {
       cell.title = item.description;
     }
-    cell = renderCell(row, item.sprint);
+
+    if (item.type !== "EPIC") {
+      cell = renderCell(row, item.sprint);
+    } else {
+      cell = renderCell(row, "");
+    }
+
     cell = renderCell(row, item.type);
+    if (item.type === "EPIC") {
+      cell.className = "text-muted";
+    }
+    if (item.depends_on) {
+      cell.title = `Depends on: ${item.depends_on}`;
+    }
+  
     cell = renderCell(row, item.status);
     if (item.status === "COMPLETED") {
       cell.style = GREEN;
@@ -985,7 +1039,13 @@ function renderChildrenItems() {
     } else {
       cell.title = "Unassigned";
     }
-    cell = renderCell(row, item.estimate);
+
+    if (item.type === "EPIC") {
+      cell = renderCell(row, item.computed_sp);
+      cell.className = "text-muted";
+    } else {
+      cell = renderCell(row, EFF(convertToSP(item.estimate, item.unit)));
+    }
 
     mytable.appendChild(row);
     n++;
