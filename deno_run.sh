@@ -6,5 +6,5 @@
 # As a last resort, you can temporarily specify --unsafely-ignore-certificate-errors to download & cache resources.
 
 #setproxy
-#set DENO_TLS_CA_STORE="system"
+#export DENO_TLS_CA_STORE="system"
 deno run --allow-net=:80 --allow-env --allow-read --location http://localhost:8000 --watch server.ts

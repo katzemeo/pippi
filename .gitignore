@@ -1,1 +1,2 @@
 *.local
+deno_run_local.sh

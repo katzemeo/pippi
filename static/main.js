@@ -1,4 +1,4 @@
-const JIRA_URL = "https://localhost:8000/browse/";
+const JIRA_URL = "/items/";
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
@@ -719,7 +719,7 @@ function createJiraAnchor(item) {
   if (item.type === "FEAT" || item.type === "EPIC") {
     className += " text-decoration-underline";
   }
-  return `<a class="${className} text-decoration-none" href="${JIRA_URL}${item.jira}">${item.jira}</a>`;
+  return `<a class="${className} text-decoration-none" href="${JIRA_URL}${item.jira}" target="item_jira">${item.jira}</a>`;
 }
 
 function createJiraLink(item) {
@@ -1034,10 +1034,13 @@ function renderChildrenItems() {
     } else if (item.status === "BLOCKED") {
       cell.style = RED;
     }
+
     if (item.assignee) {
-      cell.title = item.assignee;
+      cell.title = "Assignee: " + item.assignee;
+      item.computed_unassigned = "Assignee";
     } else {
       cell.title = "Unassigned";
+      item.computed_unassigned = "Unassigned";
     }
 
     if (item.type === "EPIC") {

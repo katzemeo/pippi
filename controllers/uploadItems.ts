@@ -37,6 +37,8 @@ async function parseJSONTeamItems(uploadFilename: string, text: string) {
       updated: e.updated ?? null,
       resolved: e.resolved ?? null,
       due: e.due ?? null,
+      sprint_start: e.sprint_start ?? null,
+      sprint_end: e.sprint_end ?? null,
       release: e.release ?? null,
       completed: Number(e["completed"] ?? 0),
       remaining: Number(e["remaining"]) ?? null,
