@@ -359,7 +359,11 @@ function setTeam(team) {
   el = document.getElementById("team_name");
   let capacity = `SP:  ${_team.capacity ?? "Unknown"}`;
   if (_team.capacity && _team.computed_effort) {
-    capacity += `, Unused:  ${EFF(_team.capacity - _team.computed_effort)}`;
+    if (_team.capacity >= _team.computed_effort) {
+      capacity += `, Unused: ${EFF(_team.capacity - _team.computed_effort)}`;
+    } else {
+      capacity += `, <strong class="text-danger">Over: ${EFF(_team.computed_effort - _team.capacity)}</strong>`;
+    }
   }
   el.innerHTML = (_team.squad ?? _team.name ?? "") +" ("+ capacity +")";
   el.title = `${formatDate(NOW)} - ${team.time_zone}`;
@@ -927,14 +931,16 @@ var _childrenFilterKey = null;
 var _childrenSortKey = null;
 var _childrenSortOrder = {};
 
-function findItemByJira(jira, items) {
-  for (let i=0; i<items.length; i++) {
-    if (items[i].jira === jira) {
-      return items[i];
-    } else if (items[i].children) {
-      let item = findItemByJira(jira, items[i].children);
-      if (item) {
-        return item;
+function findItemByJira(jira, items=_items) {
+  if (items) {
+    for (let i=0; i<items.length; i++) {
+      if (items[i].jira === jira) {
+        return items[i];
+      } else if (items[i].children) {
+        let item = findItemByJira(jira, items[i].children);
+        if (item) {
+          return item;
+        }
       }
     }
   }
@@ -944,7 +950,7 @@ function findItemByJira(jira, items) {
 function showChildren(parentJira) {
   const options = { backdrop: "static" };
   const modal = new bootstrap.Modal(document.getElementById('itemChildren'), options);
-  const parent = findItemByJira(parentJira, _items);
+  const parent = findItemByJira(parentJira);
 
   _childrenItems = [];
   if (parent.children) {
@@ -1023,7 +1029,9 @@ function renderChildrenItems() {
     if (item.depends_on) {
       cell.title = `Depends on: ${item.depends_on}`;
     }
-  
+
+    cell = renderCell(row, item.assignee ?? "");
+
     cell = renderCell(row, item.status);
     if (item.status === "COMPLETED") {
       cell.style = GREEN;
@@ -1036,16 +1044,19 @@ function renderChildrenItems() {
     }
 
     if (item.assignee) {
-      cell.title = "Assignee: " + item.assignee;
+      //cell.title = "Assignee: " + item.assignee;
       item.computed_unassigned = "Assignee";
     } else {
       cell.title = "Unassigned";
-      item.computed_unassigned = "Unassigned";
+      //item.computed_unassigned = "Unassigned";
     }
 
     if (item.type === "EPIC") {
       cell = renderCell(row, item.computed_sp);
       cell.className = "text-muted";
+      if (item.estimate) {
+        cell.title = `Estimate: ${item.estimate}`;
+      }
     } else {
       cell = renderCell(row, EFF(convertToSP(item.estimate, item.unit)));
     }

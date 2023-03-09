@@ -67,7 +67,7 @@
   </style>
 
   <link rel="icon" href="/public/favicon.ico">
-  <title id="title">Pippi v0.1</title>
+  <title id="title">Pippi v0.2</title>
 </head>
 
 <body oncontextmenu="return false;" style="padding-bottom: 55px;">
@@ -269,6 +269,7 @@
                   <th onclick="sortChildrenBy('summary')">Summary</th>
                   <th onclick="sortChildrenBy('sprint')">Sprint</th>
                   <th onclick="sortChildrenBy('type')">Type</th>
+                  <th onclick="sortChildrenBy('assignee')">Assignee</th>
                   <th onclick="sortChildrenBy('status')">Status</th>
                   <th onclick="sortChildrenBy('estimate')">SP</th>
                 </tr>
@@ -279,10 +280,10 @@
         </div>
         <div class="modal-footer">
           <div class="container">
-            <div class="d-flex justify-content-center">
+            <div class="d-flex">
               <div>
                 <h5 id="parentItemLabel">Parent Status</h5>
-              </div>  
+              </div>
               <div class="col" style="padding-top: 4px;">
                 <i class="material-icons">search</i>
               </div>
