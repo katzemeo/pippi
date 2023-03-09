@@ -1,4 +1,4 @@
-const JIRA_URL = "/items/";
+const ISSUE_WEBSITE_URL = "/items/";
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
@@ -168,6 +168,17 @@ function updateItemForTeam(item, team) {
   }
 }
 
+function processTeamMembers(data, team) {
+  if (data.members) {
+    if (!team.members) {
+      team.members = {};
+    }
+    data.members.forEach((member) => {
+      team.members[member.id] = member;
+    });  
+  }
+}
+
 function processTeamItems(data) {
   let team = _teams[data.name];
   if (!team) {
@@ -182,6 +193,7 @@ function processTeamItems(data) {
   team.items = data.items ?? team.items;
   team.capacity = data.capacity ?? team.capacity;
   team.sprint = data.sprint ?? team.sprint;
+  processTeamMembers(data, team);
 
   if (!_teams[team.name] || team.squad !== _teams[team.name].squad) {
     _teamName = team.name;
@@ -704,7 +716,7 @@ function createSelectionCheck(item) {
 function createPriorityLink(item) {
   let markup = `<div class="row">`;
 
-  markup += `<div class="col">${item.priority}</div>`;
+  markup += `<div class="col">${(item.priority >= 0) ? item.priority: ""}</div>`;
   if (item.computed_notes) {
     markup +=
     `<div class="col" style="padding-top:4px">
@@ -718,18 +730,18 @@ function createPriorityLink(item) {
   return markup;
 }
 
-function createJiraAnchor(item) {
+function createIssueAnchor(item) {
   let className = "text-primary";
   if (item.type === "FEAT" || item.type === "EPIC") {
     className += " text-decoration-underline";
   }
-  return `<a class="${className} text-decoration-none" href="${JIRA_URL}${item.jira}" target="item_jira">${item.jira}</a>`;
+  return `<a class="${className} text-decoration-none" href="${ISSUE_WEBSITE_URL}${item.jira}" target="item_jira">${item.jira}</a>`;
 }
 
-function createJiraLink(item) {
+function createIssueLink(item) {
   let markup = `<div class="row">`;
   if (item.jira) {
-    markup += `<div class="col">${createJiraAnchor(item)}</div>`;
+    markup += `<div class="col">${createIssueAnchor(item)}</div>`;
   }
   markup += `</div>`;
 
@@ -810,7 +822,7 @@ function renderItems() {
         cell.title = item.client;
       }
 
-      cell = renderCell(row, createJiraLink(item));
+      cell = renderCell(row, createIssueLink(item));
 
       cell = renderCell(row, createSummaryLink(item));
       if (item.description) {
@@ -964,7 +976,7 @@ function showChildren(parentJira) {
 
   const label = document.getElementById("childrenItemsLabel");
   removeChildren(label);
-  label.innerHTML = `${createJiraAnchor(parent)} (${parent.t_shirt_size}: ${parent.computed_effort} ${parent.unit}) - ${parent.summary}`;
+  label.innerHTML = `${createIssueAnchor(parent)} (${parent.t_shirt_size}: ${parent.computed_effort} ${parent.unit}) - ${parent.summary}`;
 
   const statusEl = document.getElementById("parentItemLabel");
   removeChildren(statusEl);
@@ -1006,7 +1018,7 @@ function renderChildrenItems() {
     cell = renderCell(row, n);
     cell.className = "text-muted";
 
-    cell = renderCell(row, createJiraLink(item));
+    cell = renderCell(row, createIssueLink(item));
     if (item.parent_jira) {
       cell.title = `Parent: ${item.parent_jira}`;
     }
@@ -1030,7 +1042,21 @@ function renderChildrenItems() {
       cell.title = `Depends on: ${item.depends_on}`;
     }
 
-    cell = renderCell(row, item.assignee ?? "");
+    if (item.assignee) {
+      let assigneeName = item.assignee;
+      if (_team.members) {
+        const assignee = _team.members[item.assignee];
+        assigneeName = assignee ? assignee.name : item.assignee;  
+      }
+
+      cell = renderCell(row, assigneeName);
+      cell.title = "Assignee: " + item.assignee;
+      item.computed_unassigned = assigneeName;
+    } else {
+      cell = renderCell(row, "");
+      cell.title = "Unassigned";
+      item.computed_unassigned = "Unassigned";
+    }
 
     cell = renderCell(row, item.status);
     if (item.status === "COMPLETED") {
@@ -1041,14 +1067,6 @@ function renderChildrenItems() {
       cell.style = AMBER;
     } else if (item.status === "BLOCKED") {
       cell.style = RED;
-    }
-
-    if (item.assignee) {
-      //cell.title = "Assignee: " + item.assignee;
-      item.computed_unassigned = "Assignee";
-    } else {
-      cell.title = "Unassigned";
-      //item.computed_unassigned = "Unassigned";
     }
 
     if (item.type === "EPIC") {
