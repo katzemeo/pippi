@@ -1,4 +1,10 @@
-const ISSUE_WEBSITE_URL = "/items/";
+const ISSUE_WEBSITE_URL = "/item/";
+
+const JSON_HEADERS = {
+  "Accept": "application/json",
+  "Content-Type": "application/json",
+};
+
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
@@ -43,6 +49,11 @@ window.onload = function () {
       showTeam(_teamName);
     }
   }
+  
+  if (!_teamName) {
+    loadMyTeam();
+  }
+
   configureAutomaticSave();
 
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -192,7 +203,9 @@ function processTeamItems(data) {
   team.sp_per_day_rate = data.sp_per_day_rate ?? team.sp_per_day_rate ?? _SPDayRate ?? DEFAULT_SP_DAY_RATE;
   team.items = data.items ?? team.items;
   team.capacity = data.capacity ?? team.capacity;
+  team.base = data.base ?? team.base;
   team.sprint = data.sprint ?? team.sprint;
+  team.date = data.date ?? team.date;
   processTeamMembers(data, team);
 
   if (!_teams[team.name] || team.squad !== _teams[team.name].squad) {
@@ -390,7 +403,11 @@ function refreshTeamDate(showTime = false, timeZone = TIME_ZONE) {
       dateFormatted = formatDate(_date, timeZone);
     }
     let el = document.getElementById("team_date");
-    el.innerHTML = `${_team.sprint ?? "&lt;&lt;PI Planning&gt;&gt;"}<br>${dateFormatted}`;
+    let sprint = _team.sprint;
+    if (!sprint || sprint === "BASE") {
+      sprint = "<PI PLANNING>";
+    }
+    el.innerHTML = `${escapeHtml(sprint)}<br><nobr>${dateFormatted}</nobr>`;
   }
 }
 
@@ -505,7 +522,22 @@ function filterItems() {
 }
 
 function enableDisableNavigation() {
- // Empty
+  let el;
+  if (getNextSprint()) {
+    el = document.getElementById("next_sprint");
+    el.classList.remove("disabled");
+  } else {
+    el = document.getElementById("next_sprint");
+    el.classList.add("disabled");
+  }
+
+  if (getPreviousSprint()) {
+    el = document.getElementById("previous_sprint");
+    el.classList.remove("disabled");
+  } else {
+    el = document.getElementById("previous_sprint");
+    el.classList.add("disabled");
+  }
 }
 
 function showCompleted(key) {
@@ -528,6 +560,92 @@ function toggleSearchKey(key, value) {
     el.value = value;
   }
   searchKey(key);
+}
+
+function loadMyTeam() {
+  loadTeamItems("MY_TEAM");
+}
+
+function showNext() {
+  let sprint = getNextSprint();
+  _refresh = true;
+  loadTeamItems(_team.name, sprint);
+}
+
+function showPrevious() {
+  let sprint = getPreviousSprint();
+  _refresh = true;
+  loadTeamItems(_team.name, sprint);
+}
+
+function getNextSprint() {
+  if (_team && _team.base && _team.base[_team.name].length > 0) {
+    let index;
+    if (_team.sprint) {
+      index = _team.base[_team.name].indexOf(_team.sprint);
+    } else {
+      index = 0;
+    }
+    if (index >= 0 && index < _team.base[_team.name].length - 1) {
+      return _team.base[_team.name][index + 1];
+    }
+  }
+  return null;
+}
+
+function getPreviousSprint() {
+  if (_team.sprint) {
+    if (_team && _team.base && _team.base[_team.name].length > 0) {
+      let index = _team.base[_team.name].indexOf(_team.sprint);
+      if (index > 0) {
+        return _team.base[_team.name][index - 1];
+      }
+    }  
+  }
+  return null;
+}
+
+function loadTeamItems(teamName, sprint = null) {
+  let url = "/items/"+ teamName;
+  if (sprint) {
+    url += "?" + new URLSearchParams({ sprint: sprint }).toString();
+  }
+  fetch(url, {
+    method: "GET",
+    headers: JSON_HEADERS,
+  }).then((res) => {
+    if (res.status == 200) {
+      res.json().then((data) => {
+        if (data) {
+          if (Array.isArray(data)) {
+            data.forEach(team => {
+              processTeamItems(team);
+            });
+            if (data.length > 1) {
+              showTeam(MY_TEAM);
+            } else if (data.length < 1) {
+              refreshTeam();
+            }
+          } else {
+            processTeamItems(data);
+          }
+        } else {
+          refreshTeam();
+        }        
+      });
+    } else if (res.status == 204) {
+      refreshTeam();
+    } else if (res.status == 413 || res.status == 415 || res.status == 422) {
+      res.json().then((data) => {
+        window.alert(data.msg);
+      });
+    } else {
+      window.alert("Unexpected response code " + res.status);
+    }
+  }).catch((error) => {
+    console.error(error);
+    window.alert("Unable to load team information.  Please try again.");
+  });
 }
 
 const removeChildren = (parent, header = 0) => {
@@ -585,10 +703,8 @@ async function postItemsFile(blob, fileName, onSuccess) {
     method: 'POST',
     body: formData
   }).then((res) => {
-    //console.log(response.status);
     if (res.status == 200) {
       res.json().then((data) => {
-        //console.log(data);
         processTeamItems(data);
         onSuccess();
       });
@@ -872,8 +988,14 @@ function renderItems() {
         cell = renderCell(row, "");
       }
       if (item.assignee) {
-        cell.title = "Assignee: " + item.assignee;
-        item.computed_unassigned = "Assignee";
+        let assigneeName = item.assignee;
+        if (_team.members) {
+          const assignee = _team.members[item.assignee];
+          assigneeName = assignee ? `${assignee.name} (${item.assignee})` : item.assignee;  
+        }
+
+        cell.title = "Assignee: " + assigneeName;
+        item.computed_unassigned = assigneeName;
       } else {
         cell.title = "Unassigned";
         item.computed_unassigned = "Unassigned";
@@ -976,7 +1098,7 @@ function showChildren(parentJira) {
 
   const label = document.getElementById("childrenItemsLabel");
   removeChildren(label);
-  label.innerHTML = `${createIssueAnchor(parent)} (${parent.t_shirt_size}: ${parent.computed_effort} ${parent.unit}) - ${parent.summary}`;
+  label.innerHTML = `${createIssueAnchor(parent)} (${parent.t_shirt_size}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`;
 
   const statusEl = document.getElementById("parentItemLabel");
   removeChildren(statusEl);
@@ -1028,10 +1150,19 @@ function renderChildrenItems() {
       cell.title = item.description;
     }
 
-    if (item.type !== "EPIC") {
-      cell = renderCell(row, item.sprint);
+    if (Array.isArray(item.sprint) && item.sprint.length > 1) {
+      cell = renderCell(row, `[${item.sprint[0]} -> ${item.sprint[item.sprint.length - 1]}]`);
+      if (item.type !== "EPIC") {
+        cell.style = AMBER;
+      }
     } else {
-      cell = renderCell(row, "");
+      cell = renderCell(row, item.sprint);
+    }
+    if (item.computed_squad) {
+      cell.title = item.computed_squad;
+    }
+    if (item.type === "EPIC") {
+      cell.className = "text-muted";
     }
 
     cell = renderCell(row, item.type);

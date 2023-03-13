@@ -4,6 +4,7 @@ import { Application, Router, send, Status } from "./deps.ts";
 import errorHandler from "./controllers/errorHandler.ts";
 import status_404 from "./controllers/404.ts";
 import uploadItems from "./controllers/uploadItems.ts";
+import getItems from "./controllers/getItems.ts";
 import getItem from "./controllers/getItem.ts";
 
 const HOST = env.HOST ?? "0.0.0.0";
@@ -16,7 +17,8 @@ const DEPLOY_OAK_SEND_WORKAROUND = true;
 const router = new Router();
 router
   .post("/items/upload", uploadItems)
-  .get("/items/:id", getItem)
+  .get("/items/:team", getItems)
+  .get("/item/:id", getItem)
 
 const app = new Application();
 

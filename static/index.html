@@ -36,6 +36,13 @@
       user-select: none;
     }
 
+    i.small {
+      font-size: 1.1em;
+      --bs-gutter-x: 1.5rem;
+      margin-right: calc(-.5 * var(--bs-gutter-x));
+      margin-left: calc(-.5 * var(--bs-gutter-x));
+    }
+
     i.navitem {
       padding-top: 4px;
       font-size: 1.8em;
@@ -67,7 +74,7 @@
   </style>
 
   <link rel="icon" href="/public/favicon.ico">
-  <title id="title">Pippi v0.2</title>
+  <title id="title">Pippi v0.3</title>
 </head>
 
 <body oncontextmenu="return false;" style="padding-bottom: 55px;">
@@ -122,7 +129,7 @@
         <div class="d-flex me-auto mx-1">
           <span class="text-light fs-5" id="team_name"></span>
         </div>
-        <div class="d-flex ">
+        <div class="d-flex">
           <button id="show_completed" class="btn btn-success mx-1 disabled" onclick="showCompleted('global_search')"
             title="Show Completed" data-bs-toggle="tooltip" data-bs-placement="bottom">
             <i class="material-icons row">done</i>
@@ -157,10 +164,10 @@
               <th><input class="form-check-input" id="selectTeamCB" title="Select All" onchange="toggleSelection(this.checked)" type="checkbox" value="" /></th>
               <th onclick="sortBy('theme')">Theme</th>
               <th onclick="sortBy('priority')">P</th>
-              <th onclick="sortBy('jira')">Jira</th>
+              <th onclick="sortBy('jira')">ID</th>
               <th onclick="sortBy('summary')">Summary</th>
               <th onclick="sortBy('type')">Type</th>
-              <th onclick="sortBy('progress')">Progress</th>
+              <th onclick="sortBy('progress')">Progress %</th>
               <th onclick="sortBy('status')">Status</th>
               <th onclick="sortBy('computed_team_pct')">Team %</th>
             </tr>
@@ -198,7 +205,21 @@
     <div class="col text-center">
       <span id="team_status" class="fs-4"></span>
       <p id="team_remaining"></p>
-      <p id="team_date" class="h5 text-muted"></p>
+      <div class="d-flex">
+        <div class="col">
+          <button id="previous_sprint" class="btn btn-outline-dark disabled" onclick="showPrevious()" title="Previous Sprint" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons small">arrow_back</i>
+          </button>
+        </div>
+        <div class="col">
+         <p id="team_date" class="h5 text-muted"></p>
+        </div>
+        <div class="col">
+          <button id="next_sprint" class="btn btn-outline-dark disabled" onclick="showNext()" title="Next Sprint" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons small">arrow_forward</i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="col text-end">
@@ -265,7 +286,7 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th onclick="sortChildrenBy('jira')">Jira</th>
+                  <th onclick="sortChildrenBy('jira')">ID</th>
                   <th onclick="sortChildrenBy('summary')">Summary</th>
                   <th onclick="sortChildrenBy('sprint')">Sprint</th>
                   <th onclick="sortChildrenBy('type')">Type</th>
