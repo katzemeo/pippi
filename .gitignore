@@ -1,2 +1,3 @@
 *.local
+base
 deno_run_local.sh

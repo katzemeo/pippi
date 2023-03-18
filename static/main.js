@@ -10,7 +10,7 @@ const MY_TEAM = "MY TEAM";
 const NOW = new Date();
 const MAX_FRAC_DIGITS = 1;
 const _percentFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: MAX_FRAC_DIGITS }).format;
-const _numFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format;
+const _numFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format;
 const PCT = function (value) { if (!isNaN(value)) { return _percentFormat(value); } return ""; };
 const EFF = function (value) { if (!isNaN(value)) { return _numFormat(value); } return ""; };
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "America/Toronto";
@@ -29,7 +29,9 @@ var _SPDayRate = DEFAULT_SP_DAY_RATE;
 // Application UI related state
 var _sortOrders = {};
 var _sortKey = "";
-var _filterKey = null;
+var _teamNameParam = null;
+var _filterKeyParam = null;
+var _filterKey = _filterKeyParam;
 var _team = EMPTY_TEAM;
 var _items = [];
 var _toggleEditSPDayRate = false;
@@ -38,18 +40,28 @@ var _userInfo = null;
 
 function clearState() {
   _teams = {};
-  _teamName = null;
+  _teamName = _teamNameParam;
   _SPDayRate = DEFAULT_SP_DAY_RATE;
 }
 
 window.onload = function () {
-  refreshTeam();
+  const url = new URL(window.location.href);
+  if (url.searchParams.has("team")) {
+    _teamNameParam = url.searchParams.get("team");
+    _teamName = _teamNameParam;
+  }  
+  if (url.searchParams.has("filter")) {
+    _filterKeyParam = url.searchParams.get("filter");
+    setFilterKey(_filterKeyParam);
+  }
+
   if (restoreFromStorage()) {
     if (_teamName) {
       showTeam(_teamName);
     }
   }
-  
+  refreshTeam();
+
   if (!_teamName) {
     loadMyTeam();
   }
@@ -86,7 +98,7 @@ const restoreFromStorage = () => {
       try {
         _state = JSON.parse(_state);
         _teams = _state._teams ?? {};
-        _teamName = _state._teamName;
+        _teamName = _teamNameParam ?? _state._teamName;
         _SPDayRate = _state._SPDayRate ?? DEFAULT_SP_DAY_RATE;
         writeMessage("Restored from local storage (Updated: "+ formatTime(_state.lastModified) +")");
         return true;
@@ -198,6 +210,7 @@ function processTeamItems(data) {
     };
   }
 
+  team.id = data.id ?? team.id;
   team.name = team.name ?? MY_TEAM;
   team.squad = data.squad ?? team.squad ?? "My Squad";
   team.sp_per_day_rate = data.sp_per_day_rate ?? team.sp_per_day_rate ?? _SPDayRate ?? DEFAULT_SP_DAY_RATE;
@@ -339,22 +352,34 @@ function removeTeam(teamName) {
   refreshTeam(team);
 }
 
+function setFilterKey(filterKey) {
+  _filterKey = filterKey;
+  const el = document.getElementById("global_search");
+  el.value = _filterKey;
+}
+
 function setTeam(team) {
+  let el;
   const resetUI = (_team !== team);
   _team = team;
 
   if (resetUI) {
     _SPDayRate = team ? team.sp_per_day_rate : DEFAULT_SP_DAY_RATE;
     _sortKey = "";
-    _filterKey = null;
+    _filterKey = _filterKeyParam;
     _refresh = true;
+
+    el = document.getElementById("user_icon");
+    if (_team.id) {
+      el.src=`/public/assets/${_team.id.toLowerCase()}.png`;
+    } else {
+      el.src="/public/usericon.png";
+    }
   }
 
   if (!team.time_zone) {
     team.time_zone = TIME_ZONE;
   }
-
-  let el;
 
   // Enable appropriate elements when team is loaded
   if (team.items) {
@@ -373,8 +398,7 @@ function setTeam(team) {
     el.classList.add("disabled");
   }
 
-  el = document.getElementById("global_search");
-  el.value = _filterKey;
+  setFilterKey(_filterKey);
 
   _date = _team.date ? new Date(_team.date) : new Date(NOW);
   refreshTeamDate();
@@ -403,11 +427,7 @@ function refreshTeamDate(showTime = false, timeZone = TIME_ZONE) {
       dateFormatted = formatDate(_date, timeZone);
     }
     let el = document.getElementById("team_date");
-    let sprint = _team.sprint;
-    if (!sprint || sprint === "BASE") {
-      sprint = "<PI PLANNING>";
-    }
-    el.innerHTML = `${escapeHtml(sprint)}<br><nobr>${dateFormatted}</nobr>`;
+    el.innerHTML = `${SPRINT(_team.sprint)}<br><nobr>${dateFormatted}</nobr>`;
   }
 }
 
@@ -495,28 +515,41 @@ function updateSPDayRate(labelId, inputId, done) {
 }
 
 function filterItems() {
-  var filterKey = _filterKey && _filterKey.toLowerCase();
-  var order = _sortOrders[_sortKey] || 1;
   var items = _team.items;
-  if (filterKey) {
-    items = items.filter(function (row) {
-      return Object.keys(row).some(function (key) {
-        return (
-          String(row[key])
-            .toLowerCase()
-            .indexOf(filterKey) > -1
-        );
+  if (items) {
+    var filterKey = _filterKey && _filterKey.toLowerCase();
+    var order = _sortOrders[_sortKey] || 1;  
+    if (filterKey) {
+      items = items.filter(function (row) {
+        return Object.keys(row).some(function (key) {
+          return (
+            String(row[key])
+              .toLowerCase()
+              .indexOf(filterKey) > -1
+          );
+        });
       });
-    });
-  }
-  if (_sortKey) {
-    items = items.slice().sort(function (a, b) {
-      a = a[_sortKey];
-      b = b[_sortKey];
-      if (!a) a = "";
-      if (!b) b = "";
-      return (a === b ? 0 : a > b ? 1 : -1) * order;
-    });
+    }
+    if (_sortKey) {
+      items = items.slice().sort(function (a, b) {
+        a = a[_sortKey];
+        b = b[_sortKey];
+        if (!a) a = "";
+        if (!b) b = "";
+        return (a === b ? 0 : a > b ? 1 : -1) * order;
+      });
+    } else {
+      items = items.slice().sort(function (a, b) {
+        let result = compare(a, b, "index");
+        if (result === 0) {
+          result = compare(a, b, "theme");
+        }
+        if (result === 0) {
+          result = compare(a, b, "summary");
+        }
+        return result;
+      });
+    }
   }
   return items;
 }
@@ -567,15 +600,17 @@ function loadMyTeam() {
 }
 
 function showNext() {
-  let sprint = getNextSprint();
-  _refresh = true;
-  loadTeamItems(_team.name, sprint);
+  const sprint = getNextSprint();
+  const teamName = _team.name;
+  _team = null; // Force ResetUI and refresh
+  loadTeamItems(teamName, sprint);
 }
 
 function showPrevious() {
-  let sprint = getPreviousSprint();
-  _refresh = true;
-  loadTeamItems(_team.name, sprint);
+  const sprint = getPreviousSprint();
+  const teamName = _team.name;
+  _team = null; // Force ResetUI and refresh
+  loadTeamItems(teamName, sprint);
 }
 
 function getNextSprint() {
@@ -778,7 +813,7 @@ function toFixed(n) {
   return Number(n.toFixed(MAX_FRAC_DIGITS+2));
 }
 
-function escapeHtml(text) {
+function ESC(text) {
   var map = {
     '&': '&amp;',
     '<': '&lt;',
@@ -808,24 +843,21 @@ function computeStats() {
   } else {
     let count = 0;
     let sum = 0;
-    let gainLoss = 0;
     let percent = 0;
     selection.forEach((e) => {
       count++;
       sum += convertToSP(Number(e.getAttribute("data-estimate")), e.getAttribute("data-unit"));
-      gainLoss += convertToSP(Number(e.getAttribute("data-gain_loss_amt")), e.getAttribute("data-unit"));
       percent += Number(e.getAttribute("data-team_pct"));
     });
 
-    const label = "Gain";
-    const title = `${count} selected, ${label}: ${EFF(gainLoss)} SP`;
+    const title = `${count} selected`;
     writeStats(EFF(sum) + " SP", title);
     writePercent(`${PCT(percent)} %`, "Team %");
   }
 }
 
 function createSelectionCheck(item) {
-  let markup = `<input class="form-check-input" name="selectTeam" data-gain_loss_amt="${item.gain_loss_amt ?? 0}" data-estimate="${item.computed_effort ?? 0}" data-unit="${item.unit}" data-team_pct="${item.computed_team_pct ?? 0}" title="Stats" onchange="computeStats()" type="checkbox" value="" />`;
+  let markup = `<input class="form-check-input" name="selectTeam" data-estimate="${item.computed_effort ?? 0}" data-unit="${item.unit}" data-team_pct="${item.computed_team_pct ?? 0}" title="Stats" onchange="computeStats()" type="checkbox" value="" />`;
   return markup;
 }
 
@@ -836,7 +868,7 @@ function createPriorityLink(item) {
   if (item.computed_notes) {
     markup +=
     `<div class="col" style="padding-top:4px">
-        <a tabindex="0" title="${item.type} ${item.jira ?? ""} Notes" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-content="${escapeHtml(item.computed_notes)}">
+        <a tabindex="0" title="${item.type} ${item.jira ?? ""} Notes" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-content="${ESC(item.computed_notes)}">
           <i class="material-icons row">event_note</i>
         </a>
       </div>`;
@@ -868,10 +900,10 @@ function createSummaryLink(item) {
   let markup = `<div class="row">`;
   if (item.children) {
     let className = "text-primary";
-    markup += `<div class="col"><a class="${className} text-decoration-none" href="javascript:showChildren('${item.jira}')">${item.summary}</a>
+    markup += `<div class="col"><a class="${className} text-decoration-none" href="javascript:showChildren('${item.jira}')">${ESC(item.summary)}</a>
     </div>`;
   } else {
-    markup += `<div class="col"><nobr>${item.summary}</nobr></div>`;
+    markup += `<div class="col"><nobr>${ESC(item.summary)}</nobr></div>`;
   }
   markup += `</div>`;
 
@@ -947,8 +979,8 @@ function renderItems() {
 
       cell = renderCell(row, item.type);
       if (item.estimate) {
-        let estimate = "Estimate: " + item.estimate + " " + item.unit;
-        if (item.unit !== "SP") {
+        let estimate = "Estimate: " + item.estimate + " " + (item.unit ?? "SP");
+        if (item.unit && item.unit !== "SP") {
           estimate += " (" + EFF(convertToSP(item.estimate, item.unit)) + " SP)";
         }
         cell.title = estimate;
@@ -1098,7 +1130,7 @@ function showChildren(parentJira) {
 
   const label = document.getElementById("childrenItemsLabel");
   removeChildren(label);
-  label.innerHTML = `${createIssueAnchor(parent)} (${parent.t_shirt_size}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`;
+  label.innerHTML = `${createIssueAnchor(parent)} (${parent.t_shirt_size ?? ""}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`;
 
   const statusEl = document.getElementById("parentItemLabel");
   removeChildren(statusEl);
@@ -1145,7 +1177,7 @@ function renderChildrenItems() {
       cell.title = `Parent: ${item.parent_jira}`;
     }
 
-    cell = renderCell(row, item.summary);
+    cell = renderCell(row, ESC(item.summary));
     if (item.description) {
       cell.title = item.description;
     }
@@ -1276,4 +1308,19 @@ function copyItems() {
     }, 1));
     writeMessage(`Copied team "${data.name}" information to clipboard`);
   }
+}
+
+function compare(a, b, attr) {
+  a = a[attr];
+  b = b[attr];
+  if (!a) a = "";
+  if (!b) b = "";
+  return (a === b ? 0 : a > b ? 1 : -1);
+}
+
+function SPRINT(sprint, esc=true) {
+  if (!sprint || sprint === "BASE") {
+    sprint = "<PI PLANNING>";
+  }
+  return esc ? ESC(sprint) : sprint;
 }

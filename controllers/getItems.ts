@@ -36,7 +36,7 @@ async function getTeamItems(teamName: string, sprint: string|null = null) {
         }
       }
       json.base = {};
-      json.base[teamName] = entries;
+      json.base[teamName] = entries.sort();
     }
   }
   return json;

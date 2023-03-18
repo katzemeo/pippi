@@ -17,7 +17,12 @@ async function parseJSONTeamItems(uploadFilename: string, text: string) {
       result.squad = "My Squad";
     }
 
+    if (!result.items) {
+      throw new Error(`Missing items property!`);
+    }
+
     const items: any = result.items.map((e: any) => ({
+      index: e.index ?? Number(e.priority ?? 1),
       jira: e.jira ?? null,
       theme: e.theme ?? "BAU",
       priority: Number(e.priority ?? -1),
@@ -25,7 +30,7 @@ async function parseJSONTeamItems(uploadFilename: string, text: string) {
       description: e.description ?? "Item Description Missing",
       type: e.type ?? "FEAT",
       client: e.client ?? null,
-      estimate: Number(e["estimate"] ?? -1),
+      estimate: Number(e["estimate"]),
       unit: e["unit"] ?? "SP",
       ac: e.ac ?? null,
       t_shirt_size: e.t_shirt_size ?? "",
@@ -47,7 +52,10 @@ async function parseJSONTeamItems(uploadFilename: string, text: string) {
     }));
 
     result.items = items;
-    result.capacity = Number(result.capacity);
+    if (result.capacity) {
+      result.capacity = Number(result.capacity);
+    }
+    result.date = result.date ?? new Date();
 
     return result;
   } catch (e) {
