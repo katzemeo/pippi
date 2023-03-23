@@ -1,4 +1,4 @@
-import { configAsync } from "../deps.ts";
+import { load } from "../deps.ts";
 
 async function loadEnv() {
   if (window._env) {
@@ -15,7 +15,7 @@ async function loadEnv() {
     options.path = shellenv.ENV_PATH;
     //console.log(`Loading .env from "${options.path}" ...`);
   }
-  let env = await configAsync(options);
+  let env = await load(options);
 
   // Support overriding/setting key values from environment variable
 

@@ -370,10 +370,12 @@ function setTeam(team) {
     _refresh = true;
 
     el = document.getElementById("user_icon");
-    if (_team.id) {
-      el.src=`/public/assets/${_team.id.toLowerCase()}.png`;
-    } else {
-      el.src="/public/usericon.png";
+    if (el) {
+      if (_team.id) {
+        el.src = `/public/assets/${_team.id.toLowerCase()}.png`;
+      } else {
+        el.src = "/public/usericon.png";
+      }  
     }
   }
 
@@ -602,14 +604,14 @@ function loadMyTeam() {
 function showNext() {
   const sprint = getNextSprint();
   const teamName = _team.name;
-  _team = null; // Force ResetUI and refresh
+  _team = EMPTY_TEAM; // Force ResetUI and refresh
   loadTeamItems(teamName, sprint);
 }
 
 function showPrevious() {
   const sprint = getPreviousSprint();
   const teamName = _team.name;
-  _team = null; // Force ResetUI and refresh
+  _team = EMPTY_TEAM; // Force ResetUI and refresh
   loadTeamItems(teamName, sprint);
 }
 

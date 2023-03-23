@@ -146,18 +146,14 @@ if (env.DEVELOPMENT_MODE == 'true') {
   console.info(Deno.version ?? "Deno version unknown");
   console.warn("DEVELOPMENT_MODE=true, web resources will not be cached!");
   console.warn(`Deno CWD: "${Deno.cwd()}"`);
-  console.warn(`Location: "${window.location}"`);
+  if (window.location) {
+    console.warn(`Location: "${window.location}"`);
+  }
 }
-
-app.addEventListener("listen", ({ hostname, port, secure }) => {
-  console.info(
-    `Listening on: ${secure ? "https://" : "http://"}${hostname ?? "localhost"
-    }:${port}`
-  );
-});
 
 let server: any;
 if (env.ENABLE_TLS == 'true') {
+  console.info(`Listening on: https://${HOST ?? "localhost"}:${PORT}`);
   server = Deno.listenTls({
     hostname: HOST,
     port: PORT,
@@ -165,6 +161,7 @@ if (env.ENABLE_TLS == 'true') {
     keyFile: env.TLS_KEY_FILE,
   });
 } else {
+  console.info(`Listening on: http://${HOST ?? "localhost"}:${PORT}`);
   server = Deno.listen({
     hostname: HOST,
     port: PORT

@@ -1,7 +1,7 @@
-export * as Colors from "https://deno.land/std@0.134.0/fmt/colors.ts";
-export { parse as parseCSV } from "https://deno.land/std@0.134.0/encoding/csv.ts";
-export { StringReader } from "https://deno.land/std@0.134.0/io/readers.ts";
-export { BufReader } from "https://deno.land/std@0.134.0/io/bufio.ts";
-export { Status } from "https://deno.land/std@0.134.0/http/http_status.ts";
-export { configAsync } from "https://deno.land/x/dotenv@v3.2.0/mod.ts";
-export { Application, Router, send, REDIRECT_BACK } from "https://deno.land/x/oak@v10.5.1/mod.ts";
+export { assert, assertEquals, assertNotEquals, assertStrictEquals, assertMatch, assertThrows, AssertionError } from "https://deno.land/std@0.180.0/testing/asserts.ts";
+export * as Colors from "https://deno.land/std@0.180.0/fmt/colors.ts";
+export { parse as parseCSV } from "https://deno.land/std@0.180.0/encoding/csv.ts";
+export { StringReader, BufReader } from "https://deno.land/std@0.180.0/io/mod.ts";
+export { Status } from "https://deno.land/std@0.180.0/http/http_status.ts";
+export { load } from "https://deno.land/std@0.180.0/dotenv/mod.ts";
+export { Application, Router, send, REDIRECT_BACK } from "https://deno.land/x/oak@v12.1.0/mod.ts";
