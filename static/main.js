@@ -49,7 +49,7 @@ window.onload = function () {
   if (url.searchParams.has("team")) {
     _teamNameParam = url.searchParams.get("team");
     _teamName = _teamNameParam;
-  }  
+  }
   if (url.searchParams.has("filter")) {
     _filterKeyParam = url.searchParams.get("filter");
     setFilterKey(_filterKeyParam);
@@ -162,7 +162,7 @@ function updateItemForTeam(item, team) {
   if (!item.remaining) {
     if (item.status == "COMPLETED") {
       item.remaining = 0;
-    } else {
+    } else if (item.status !== "INPROGRESS") {
       item.remaining = item.estimate;
     }
   }
@@ -949,6 +949,7 @@ function renderItems() {
       if (teamTotalEffort > 0) {
         item.computed_team_pct = toFixed(convertToSP(item.computed_effort, item.unit) * 100 / teamTotalEffort);
       }
+      item.computed_remaining = convertToSP(item.remaining, item.unit);
 
       let row = document.createElement("tr");
       let cell;
@@ -990,11 +991,18 @@ function renderItems() {
 
       if (item.progress) {
         const completed = EFF(convertToSP(item.completed, item.unit));
-        cell = renderCell(row, `${PCT(item.progress)}% (${completed} SP)`);
-        cell.title = "Remaining: " + EFF(convertToSP(item.remaining, item.unit)) + " SP";
+        cell = renderCell(row, `${PCT(item.progress)}%`);
+        cell.title = `Completed: ${completed} SP`;
+        if (item.progress > 95) {
+          cell.style = GREEN;
+        } else {
+          cell.style = AMBER;
+        }
       } else {
         cell = renderCell(row, "");
       }
+
+      cell = renderCell(row, `${EFF(item.computed_remaining)} SP`);
 
       let note = "";
       const effort = EFF(convertToSP(item.computed_effort, item.unit));
@@ -1058,7 +1066,7 @@ function renderItems() {
     if (_items) {
       msg = "No matching items found.";
     }
-    renderCell(row, msg, 10);
+    renderCell(row, msg, 11);
     mytable.appendChild(row);
   }
 

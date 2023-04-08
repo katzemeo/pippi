@@ -154,9 +154,9 @@
   </nav>
 
   <!-- Table -->
-  <div class="container" style="max-width: 98%;">
+  <div class="container" style="max-width: 100%;">
     <div class="row">
-      <div class="col" style="overflow-y: auto; max-height: 70vh;">
+      <div class="col" style="overflow-y: auto; max-height: 72vh;">
         <table class="table table-striped align-middle table-sm">
           <thead>
             <tr>
@@ -167,7 +167,8 @@
               <th onclick="sortBy('jira')">ID</th>
               <th onclick="sortBy('summary')">Summary</th>
               <th onclick="sortBy('type')">Type</th>
-              <th onclick="sortBy('progress')">Progress %</th>
+              <th onclick="sortBy('progress')">Progress</th>
+              <th onclick="sortBy('computed_remaining')">Remaining</th>
               <th onclick="sortBy('status')">Status</th>
               <th onclick="sortBy('computed_team_pct')">Team %</th>
             </tr>
@@ -233,7 +234,7 @@
   </div>
 
   <!-- Footer -->
-  <nav class="navbar fixed-bottom navbar-light bg-light">
+  <nav class="navbar fixed-bottom navbar-light bg-light py-0">
     <div class="input-group">
       <span class="input-group-text text-primary" id="message-prefix">Message</span>
       <input type="text" class="form-control" id="message-text" aria-label="Message" readonly />
@@ -281,7 +282,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="container" style="overflow-y: auto; min-height: 80vh; max-height: 80vh; max-width: 98%;">
+          <div class="container" style="overflow-y: auto; min-height: 80vh; max-height: 80vh; max-width: 100%;">
             <table class="table table-striped align-middle table-sm">
               <thead>
                 <tr>

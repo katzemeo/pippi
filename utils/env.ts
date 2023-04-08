@@ -12,8 +12,8 @@ async function loadEnv() {
 
   // Support overriding the location of the .env file via environment variable
   if (shellenv.ENV_PATH) {
-    options.path = shellenv.ENV_PATH;
-    //console.log(`Loading .env from "${options.path}" ...`);
+    options.envPath = shellenv.ENV_PATH;
+    //console.log(`Loading .env from "${options.envPath}" ...`);
   }
   let env = await load(options);
 
