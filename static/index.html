@@ -74,10 +74,10 @@
   </style>
 
   <link rel="icon" href="/public/favicon.ico">
-  <title id="title">Pippi v0.3</title>
+  <title id="title">Pippi v0.4</title>
 </head>
 
-<body oncontextmenu="return false;" style="padding-bottom: 55px;">
+<body oncontextmenu="return false;">
   <!-- Option 1: Bootstrap Bundle with Popper -->
   <!--
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
@@ -88,7 +88,7 @@
   <script src="/public/main.js"></script>
 
   <!-- Header -->
-  <nav class="navbar sticky-top navbar-expand navbar-dark bg-dark">
+  <nav id="header" class="navbar sticky-top navbar-expand navbar-dark bg-dark">
     <div class="container-fluid">
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -125,6 +125,10 @@
             title="Copy to Clipboard" data-bs-toggle="tooltip" data-bs-placement="bottom">
             <i class="material-icons row">content_copy</i>
           </button>
+          <button id="item_map" class="btn btn-light mx-1" onclick="toggleItemMap()"
+            title="Item Map" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">category</i>
+          </button>
         </div>
         <div class="d-flex me-auto mx-1">
           <span class="text-light fs-5" id="team_name"></span>
@@ -153,8 +157,27 @@
     </div>
   </nav>
 
+  <!-- Footer -->
+  <nav id="footer" class="navbar fixed-bottom navbar-light bg-light py-0">
+    <div class="input-group">
+      <span class="input-group-text text-primary" id="message-prefix">Message</span>
+      <input type="text" class="form-control" id="message-text" aria-label="Message" readonly />
+      <span class="input-group-text text-muted" id="message-stats">Selection</span>
+      <span class="input-group-text text-muted" id="message-percent">%</span>
+    </div>
+  </nav>
+
+  <!-- Canvas -->
+  <div id="canvas-div" class="container" style="max-width: 100%; display: none;">
+    <div class="row">
+      <div class="col px-0 mr-auto" style="overflow: none; background-color: black;">
+        <canvas id="canvas" />
+      </div>
+    </div>
+  </div>
+
   <!-- Table -->
-  <div class="container" style="max-width: 100%;">
+  <div id="table-div" class="container" style="max-width: 100%;">
     <div class="row">
       <div class="col" style="overflow-y: auto; max-height: 72vh;">
         <table class="table table-striped align-middle table-sm">
@@ -232,16 +255,6 @@
       <div id="team_total" />
     </div>
   </div>
-
-  <!-- Footer -->
-  <nav class="navbar fixed-bottom navbar-light bg-light py-0">
-    <div class="input-group">
-      <span class="input-group-text text-primary" id="message-prefix">Message</span>
-      <input type="text" class="form-control" id="message-text" aria-label="Message" readonly />
-      <span class="input-group-text text-muted" id="message-stats">Selection</span>
-      <span class="input-group-text text-muted" id="message-percent">%</span>
-    </div>
-  </nav>
 
   <!-- Modal: Upload dialog -->
   <div class="modal fade" id="uploadFile" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="uploadFileLabel" aria-hidden="true">

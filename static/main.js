@@ -72,6 +72,8 @@ window.onload = function () {
   tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl)
   });
+
+  window.addEventListener('resize', () => { _refreshMap = true; });
 };
 
 var _modified = false;
@@ -150,12 +152,15 @@ function sortBy(key) {
   _sortKey = key;
   _sortOrders[key] = (!_sortOrders[key] ? 1 : _sortOrders[key]) * -1;
   renderItems();
+  _refreshMap = true;
 }
 
 function searchKey(key) {
   var value = document.getElementById(key).value;
   _filterKey = value;
   renderItems();
+  _refreshMap = true;
+  updateCanvasSelection();
 }
 
 function updateItemForTeam(item, team) {
@@ -261,7 +266,7 @@ function refreshTeam(team = _team) {
     });
   }
 
-  // Build teams picker based
+  // Build teams picker
   let el = document.getElementById("teams");
   removeChildren(el);
 
@@ -274,14 +279,12 @@ function refreshTeam(team = _team) {
 
   for (const key in _teams) {
     let t = _teams[key];
-    //console.log(team);
     createTeamMI(el, t.name, t.squad);
   };
 
   setTeam(team);
 }
 
-//<li><a class="dropdown-item" href="#">Team</a></li>
 function createTeamMI(el, name, squad, removeOption = true) {
   let li = document.createElement("li");
   let a = document.createElement("a");
@@ -368,6 +371,7 @@ function setTeam(team) {
     _sortKey = "";
     _filterKey = _filterKeyParam;
     _refresh = true;
+    _refreshMap = true;
 
     el = document.getElementById("user_icon");
     if (el) {
@@ -606,6 +610,7 @@ function showNext() {
   const teamName = _team.name;
   _team = EMPTY_TEAM; // Force ResetUI and refresh
   loadTeamItems(teamName, sprint);
+  _refreshMap = true;
 }
 
 function showPrevious() {
@@ -613,6 +618,7 @@ function showPrevious() {
   const teamName = _team.name;
   _team = EMPTY_TEAM; // Force ResetUI and refresh
   loadTeamItems(teamName, sprint);
+  _refreshMap = true;
 }
 
 function getNextSprint() {
@@ -915,6 +921,7 @@ function createSummaryLink(item) {
 const RED = "color:#F93154";
 const GREEN = "color:#00B74A";
 const AMBER = "color:#FFA900";
+const BLUE = "color:#0D6EFD";
 
 function renderItems() {
   if (!_SPDayRate || isNaN(_SPDayRate)) {
@@ -1014,15 +1021,16 @@ function renderItems() {
       cell = renderCell(row, item.status+note);
       if (item.status === "COMPLETED") {
         cell.style = GREEN;
-      } else if (item.status === "INPROGRESS") {
+      } else if (item.status === "INPROGRESS" || item.status === "PENDING") {
         cell.style = AMBER;
-      } else if (item.status === "PENDING") {
-        cell.style = AMBER;
+      } else if (item.status === "READY") {
+        cell.style = BLUE;
       } else if (item.status === "BLOCKED") {
         cell.style = RED;
         hasBlockers = true;
       }
       cell.title = noteTitle;
+      cell.setAttribute("data-type", "status");
 
       if (item.computed_effort > 0) {
         cell = renderCell(row, `${PCT(item.computed_team_pct)}% (${effort} SP)`);
@@ -1148,19 +1156,30 @@ function showChildren(parentJira) {
   let progress = "";
   if (parent.progress) {
     const completed = EFF(convertToSP(parent.completed, parent.unit));
-    progress = ` - ${PCT(parent.progress)}% (${completed} SP) Completed`;
+    let suffix = (parent.status !== "COMPLETED") ? " Completed" : "";
+    progress = ` - ${PCT(parent.progress)}% (${completed} SP)${suffix}`;
   }
 
-  statusEl.innerHTML = `${parent.status}${progress}`;
+  let icon = "";
   if (parent.status === "COMPLETED") {
     statusEl.style = GREEN;
+    icon = "check_circle";
   } else if (parent.status === "INPROGRESS") {
     statusEl.style = AMBER;
+    icon = "hourglass_empty";
   } else if (parent.status === "PENDING") {
     statusEl.style = AMBER;
+    icon = "pending";
+  } else if (parent.status === "READY") {
+    statusEl.style = BLUE;
+    icon = "calendar_today";
   } else if (parent.status === "BLOCKED") {
     statusEl.style = RED;
+    icon = "block";
+  } else {
+    icon = "schedule";
   }
+  statusEl.innerHTML = `<i class="material-icons">${icon}</i> ${parent.status}${progress}`;
 
   document.getElementById("children_search").value = "";
   _childrenFilterKey = null;
@@ -1234,10 +1253,10 @@ function renderChildrenItems() {
     cell = renderCell(row, item.status);
     if (item.status === "COMPLETED") {
       cell.style = GREEN;
-    } else if (item.status === "INPROGRESS") {
+    } else if (item.status === "INPROGRESS" || item.status === "PENDING") {
       cell.style = AMBER;
-    } else if (item.status === "PENDING") {
-      cell.style = AMBER;
+    } else if (item.status === "READY") {
+      cell.style = BLUE;
     } else if (item.status === "BLOCKED") {
       cell.style = RED;
     }
@@ -1333,4 +1352,117 @@ function SPRINT(sprint, esc=true) {
     sprint = "<PI PLANNING>";
   }
   return esc ? ESC(sprint) : sprint;
+}
+
+function loadJSSync(url, onload = null) {
+  //console.log(`loading ${url}...`);
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = url;
+  script.async = false;
+  if (onload) {
+    script.onload = onload;
+  }
+  document.head.appendChild(script);
+}
+
+var _canvasMap = null;
+var _refreshMap = false;
+var show = function(el,v) { el.style.display = v ? "" : "none"; }
+
+function clearCanvasMap() {
+  if (_canvasMap) {
+    _canvasMap.clear();
+    _canvasMap.dispose();
+    _canvasMap = null;
+  }
+}
+
+function toggleItemMap() {
+  let canvasEl = document.getElementById("canvas-div");
+  let tableEl = document.getElementById("table-div");
+  if (canvasEl.style.display) {
+    show(canvasEl, true);
+    show(tableEl, false);
+    if (_refreshMap) {
+      clearCanvasMap();
+      _refreshMap = false;
+    }
+    if (!_canvasMap) {
+      showTeamMap();
+    }
+  } else {
+    show(canvasEl, false);
+    show(tableEl, true);
+    enableDisableNavigation();
+  }
+}
+
+var _fabricJSLoaded = false;
+function showTeamMap(data=null) {
+  let callback = function() {
+    _showTeamMap(data);
+  };
+  if (!_fabricJSLoaded) {
+    loadJSSync("/public/fabric.min.js");
+    loadJSSync("/public/draw.js");
+    loadJSSync("/public/custom.js", callback);    
+    _fabricJSLoaded = true;
+  } else {
+    callback();
+  }
+}
+
+function _showTeamMap(data=null) {
+  const headerEl = document.getElementById("header");
+  const footerEl = document.getElementById("footer");
+  const adjustHeight = headerEl.offsetHeight + footerEl.offsetHeight;
+  const map = { canvasData: data };
+  _canvasMap = _initDraw(window.innerWidth, window.innerHeight - adjustHeight, map);
+  enableDisableNavigation();
+
+  if (!data) {
+    _renderItemsCanvas(_canvasMap, _items);
+  }
+
+  _fitToCanvas(_canvasMap);
+  _canvasMap.requestRenderAll();
+}
+
+const MAX_SELECTION = 20;
+function updateCanvasSelection(canvas=_canvasMap) {
+  if (_filterKey && _filterKey.length > 2 && canvas) {
+    var filterKey = _filterKey && _filterKey.toLowerCase();
+    let objects = canvas.getObjects();
+    const keys = ['id', 'summary', 'text'];
+    objects = objects.filter(function (row) {
+      return keys.some(function (key) {
+        if (key === 'id') {
+          return String(row[key]).toLowerCase() === filterKey;
+        }
+        return String(row[key]).toLowerCase().indexOf(filterKey) > -1;
+      });
+    });
+
+    canvas.discardActiveObject();
+    let message = "";
+    if (objects.length > 0) {
+      let sel = objects[0];
+      if (objects.length > 1) {
+        message = `Found ${objects.length} matching objects`;
+        if (objects.length > MAX_SELECTION) {
+          objects = objects.slice(0, MAX_SELECTION);
+          message += ` (selection limited to ${objects.length})`;
+        }
+        sel = new fabric.ActiveSelection(objects, {
+          canvas: canvas,
+        });
+      } else {
+        message = `Found [${sel.id}] - "${sel.summary}"`;
+      }
+      canvas.setActiveObject(sel);
+    }
+    writeMessage(message);
+    canvas.requestRenderAll();
+  }
 }
