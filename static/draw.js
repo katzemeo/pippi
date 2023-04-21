@@ -14,15 +14,15 @@ function _initDraw(width, height, map) {
 
   fabric.Object.prototype.transparentCorners = false;
 
-  //$('download').onclick = saveCanvasImage;
+  //document.getElementById('download').onclick = saveCanvasImage;
 
   function saveCanvasImage(e) {
     downloadImage(this, canvas);
   }
 
   function downloadImage(link, target) {
-    let filename = 'stella_canvas'; //$('file-name').value.trim() ?? 'stella_canvas';
-    const format = 'png'; //$('file-type').value.toLowerCase() ?? 'png';
+    let filename = _teamName ?? 'map_canvas';
+    const format = 'png';
     if (filename.indexOf('.') < 0) {
       filename = `${filename}.${format}`;
     }
@@ -244,7 +244,7 @@ function setObjectStatus(itemId, itemStatus) {
 function _fitToCanvas(canvas) {
   canvas.discardActiveObject();
   const activeObj = new fabric.ActiveSelection(canvas.getObjects(), {
-    canvas: canvas,
+    canvas: canvas
   });
   canvas.setActiveObject(activeObj);
   const margin = 10;
@@ -281,12 +281,13 @@ function _renderItemsCanvas(canvas, items) {
   let left = 50;
   let top = 50;
   let rowHeight = 0;
+  const ratio = canvas.height / canvas.width - 0.1;
   items.forEach((item) => {
     const effort = EFF(convertToSP(item.computed_effort, item.unit));
     let feat = _createFeat(item.jira, effort, item.summary);
     feat.item = item;
     feat.estimate = item.estimate;
-    feat.set({left: left, top: top, width: calcFeatSize(item.estimate), status: item.status.toLowerCase()});
+    feat.set({left: left, top: top, width: calcFeatSize(item.estimate ?? effort), status: item.status.toLowerCase()});
     canvas.add(feat);
     if (item.children) {
       const childrenTop = _renderChildrenItems(canvas, item, feat);
@@ -299,7 +300,7 @@ function _renderItemsCanvas(canvas, items) {
     }
 
     left += feat.width * feat.scaleX + 50;
-    if (left > canvas.width * feat.scaleX * 0.75 - 310) {
+    if (left > canvas.width * feat.scaleX * ratio - 310) {
       left = 50;
       top += rowHeight * feat.scaleY + 50;
       rowHeight = 0;
