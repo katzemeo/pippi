@@ -83,9 +83,12 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
           });
           this.fill = gradient;
           this.stroke = "#01740F";
-        } else {
+        } else if (this.status === "completed") {
           this.fill = "#0CB620";
           this.stroke = "#01740F";
+        } else {
+          this.fill = "#9A9790";
+          this.stroke = "#000000";
         }
       }
     }
@@ -110,7 +113,11 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
     }
     ctx.font = '8px Helvetica';
     ctx.fillText(`${this.summary}`, startX, this.height/2 - 4, this.width - size - 2);
-    ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
+    if (_img_status[this.status]) {
+      ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
+    } else {
+      console.log(`Unknown status "{this.status}" in Feat._render()`);
+    }
   }
 });
 
@@ -210,9 +217,12 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
           });
           this.fill = gradient;
           this.stroke = "#01740F";
-        } else {
+        } else if (this.status === "completed") {
           this.fill = "#0CB620";
           this.stroke = "#01740F";
+        } else {
+          this.fill = "#9A9790";
+          this.stroke = "#000000";
         }
       }
     }
@@ -235,8 +245,11 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
       ctx.fillText(`${this.sp} SP`, startX, startY + 40);
     }
     //ctx.fillText(`${this.summary}`, startX, this.height/2 - 4);
-
-    ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
+    if (_img_status[this.status]) {
+      ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
+    } else {
+      console.log(`Unknown status "{this.status}" in Feat._render()`);
+    }
   }
 });
 
