@@ -97,7 +97,7 @@
         <ul class="navbar-nav mb-2 mb-lg-0">
           <li class="nav-item">
             <span data-bs-toggle="modal" data-bs-target="#uploadFile">
-              <a class="btn btn-primary mx-1" href="#" role="button" title="Upload" data-bs-toggle="tooltip" data-bs-placement="bottom">
+              <a id="upload" class="btn btn-primary mx-1" href="#" role="button" title="Upload" data-bs-toggle="tooltip" data-bs-placement="bottom">
                 <i class="material-icons row">upload</i>
               </a>
             </span>
@@ -124,6 +124,18 @@
           <button id="copy_to_clipboard" class="btn btn-light mx-1" onclick="copyItems()"
             title="Copy to Clipboard" data-bs-toggle="tooltip" data-bs-placement="bottom">
             <i class="material-icons row">content_copy</i>
+          </button>
+          <button id="fit_canvas" class="btn btn-light mx-1" title="Fit to Canvas" onclick="fitToCanvas()"
+            title="Fit to Canvas" data-bs-toggle="tooltip" data-bs-placement="bottom" style="display: none;">
+            <i class="material-icons row">fit_screen</i>
+          </button>
+          <button id="previous_sprint_b" class="btn btn-light mx-1 disabled" onclick="showPrevious()"
+            title="Previous Sprint" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">arrow_back</i>
+          </button>
+          <button id="next_sprint_b" class="btn btn-light mx-1 disabled" onclick="showNext()"
+            title="Next Sprint" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">arrow_forward</i>
           </button>
           <button id="item_map" class="btn btn-light mx-1" onclick="toggleItemMap()"
             title="Item Map" data-bs-toggle="tooltip" data-bs-placement="bottom">

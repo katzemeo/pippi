@@ -261,6 +261,7 @@ function _fitToCanvas(canvas) {
   });
   canvas.setZoom(1);
   canvas.discardActiveObject();
+  canvas.viewportTransform[4] = canvas.viewportTransform[5] = 0;
 };
 
 function calcFeatSize(sp) {

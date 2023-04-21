@@ -410,6 +410,9 @@ function setTeam(team) {
   refreshTeamDate();
   enableDisableNavigation();
   renderItems();
+  if (_canvasMode) {
+    refreshMap();
+  }
 
   el = document.getElementById("team_name");
   let capacity = `SP:  ${_team.capacity ?? "Unknown"}`;
@@ -563,17 +566,25 @@ function filterItems() {
 function enableDisableNavigation() {
   let el;
   if (getNextSprint()) {
+    el = document.getElementById("next_sprint_b");
+    el.classList.remove("disabled");
     el = document.getElementById("next_sprint");
     el.classList.remove("disabled");
   } else {
+    el = document.getElementById("next_sprint_b");
+    el.classList.add("disabled");
     el = document.getElementById("next_sprint");
     el.classList.add("disabled");
   }
 
   if (getPreviousSprint()) {
+    el = document.getElementById("previous_sprint_b");
+    el.classList.remove("disabled");
     el = document.getElementById("previous_sprint");
     el.classList.remove("disabled");
   } else {
+    el = document.getElementById("previous_sprint_b");
+    el.classList.add("disabled");
     el = document.getElementById("previous_sprint");
     el.classList.add("disabled");
   }
@@ -1378,24 +1389,48 @@ function clearCanvasMap() {
   }
 }
 
+function refreshMap() {
+  if (_refreshMap) {
+    clearCanvasMap();
+    _refreshMap = false;
+  }
+  if (!_canvasMap) {
+    showTeamMap();
+  }
+}
+
+function fitToCanvas() {
+  if (_canvasMap) {
+    if (_refreshMap) {
+      let headerEl = document.getElementById("header");
+      let footerEl = document.getElementById("footer");
+      let adjustHeight = headerEl.offsetHeight + footerEl.offsetHeight;
+      _canvasMap.setWidth(window.innerWidth);
+      _canvasMap.setHeight(window.innerHeight - adjustHeight);
+    }
+
+    _fitToCanvas(_canvasMap);
+    _canvasMap.requestRenderAll();
+  }
+}
+
+var _canvasMode = false;
 function toggleItemMap() {
   let canvasEl = document.getElementById("canvas-div");
   let tableEl = document.getElementById("table-div");
   if (canvasEl.style.display) {
+    _canvasMode = true;
     show(canvasEl, true);
     show(tableEl, false);
-    if (_refreshMap) {
-      clearCanvasMap();
-      _refreshMap = false;
-    }
-    if (!_canvasMap) {
-      showTeamMap();
-    }
+    refreshMap();
   } else {
+    _canvasMode = false;
     show(canvasEl, false);
     show(tableEl, true);
     enableDisableNavigation();
   }
+  show(document.getElementById("upload"), !_canvasMode);
+  show(document.getElementById("fit_canvas"), _canvasMode);
 }
 
 var _fabricJSLoaded = false;
@@ -1421,7 +1456,7 @@ function _showTeamMap(data=null) {
   _canvasMap = _initDraw(window.innerWidth, window.innerHeight - adjustHeight, map);
   enableDisableNavigation();
 
-  if (!data) {
+  if (!data && _items) {
     _renderItemsCanvas(_canvasMap, _items);
   }
 
