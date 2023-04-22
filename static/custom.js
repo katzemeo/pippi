@@ -84,7 +84,7 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
           this.fill = gradient;
           this.stroke = "#01740F";
         } else if (this.status === "completed") {
-          this.fill = "#0CB620";
+          this.fill = "#00873E";
           this.stroke = "#01740F";
         } else {
           this.fill = "#9A9790";
@@ -108,15 +108,15 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
     var textMeasurement = ctx.measureText(featId);
     ctx.fillRect(startX, startY + 1, textMeasurement.width, 1);
     if (this.sp >= 0) {
-      ctx.font = 'bold 10px Helvetica';
-      ctx.fillText(`${this.sp} SP`, this.width/2 - 32, -this.height/2 + 12);
+      ctx.font = 'bold 12px Courier';
+      ctx.fillText(`${this.sp.toString().padStart(3,' ')} SP`, this.width/2 - 48, -this.height/2 + 12);
     }
     ctx.font = '8px Helvetica';
     ctx.fillText(`${this.summary}`, startX, this.height/2 - 4, this.width - size - 2);
     if (_img_status[this.status]) {
       ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
     } else {
-      console.log(`Unknown status "{this.status}" in Feat._render()`);
+      console.log(`Unknown status "${this.status}" in Feat._render()`);
     }
   }
 });
@@ -141,6 +141,9 @@ function _createFeat(id, sp, summary = null) {
     summary: summary ?? "My Feature",
     id: id,
     sp: sp,
+    borderColor: 'green',
+    borderScaleFactor: 2,
+    borderDashArray: [4, 4],
     status: "backlog"
   });
   return feat;
@@ -248,7 +251,7 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
     if (_img_status[this.status]) {
       ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
     } else {
-      console.log(`Unknown status "{this.status}" in Feat._render()`);
+      console.log(`Unknown status "${this.status}" in Feat._render()`);
     }
   }
 });
@@ -270,6 +273,9 @@ function _createItem(id, sp, summary = null) {
     summary: summary ?? "My Item",
     id: id,
     sp: sp,
+    borderColor: 'green',
+    borderScaleFactor: 2,
+    borderDashArray: [4, 4],
     status: "ready"
   });
   return feat;

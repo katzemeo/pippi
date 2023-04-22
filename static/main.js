@@ -73,7 +73,12 @@ window.onload = function () {
     return new bootstrap.Tooltip(tooltipTriggerEl)
   });
 
-  window.addEventListener('resize', () => { _refreshMap = true; });
+  window.addEventListener('resize', () => {
+    _refreshMap = true;
+    if (_canvasMode) {
+      refreshMap();
+    }
+  });
 };
 
 var _modified = false;
@@ -379,7 +384,7 @@ function setTeam(team) {
         el.src = `/public/assets/${_team.id.toLowerCase()}.png`;
       } else {
         el.src = "/public/usericon.png";
-      }  
+      }
     }
   }
 
@@ -1011,10 +1016,12 @@ function renderItems() {
         const completed = EFF(convertToSP(item.completed, item.unit));
         cell = renderCell(row, `${PCT(item.progress)}%`);
         cell.title = `Completed: ${completed} SP`;
-        if (item.progress > 95) {
-          cell.style = GREEN;
-        } else {
-          cell.style = AMBER;
+        if (item.progress > 50) {
+          if (item.status === "COMPLETED") {
+            cell.style = GREEN;
+          } else {
+            cell.style = AMBER;
+          }
         }
       } else {
         cell = renderCell(row, "");
@@ -1495,6 +1502,11 @@ function updateCanvasSelection(canvas=_canvasMap) {
       } else {
         message = `Found [${sel.id}] - "${sel.summary}"`;
       }
+
+      sel.borderColor = 'red';
+      sel.borderScaleFactor = 4;
+      sel.borderDashArray = [8, 8];
+      sel.hasControls = false;
       canvas.setActiveObject(sel);
     }
     writeMessage(message);

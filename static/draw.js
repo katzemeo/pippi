@@ -101,13 +101,21 @@ function _initDraw(width, height, map) {
         if (ISSUE_WEBSITE_URL && obj.id) {
           _targetURL = `${ISSUE_WEBSITE_URL}${obj.id}`;
         }
-        writeMessage(`${obj.id ?? ""} [${obj.status ?? "Unknown"}] - "${obj.summary ?? ""}"`);
+        let assigneeText = "";
+        if (obj.item && obj.item.assignee) {
+          let assigneeName = obj.item.assignee;
+          if (_team.members && _team.members[assigneeName]) {
+            assigneeName = _team.members[assigneeName].name ?? assigneeName;
+          }
+          assigneeText = " ["+ assigneeName +"]";
+        }
+        writeMessage(`${obj.id ?? ""} [${obj.status ?? "Unknown"}] - "${obj.summary ?? ""}"${assigneeText}`);
       }
 
       if ((obj.parentItem) && !_tooltipGroup) {
         //const tooltip = `${obj.item.jira}: ${obj.item.summary}`;
         const tooltip = `${obj.parentItem.jira}: ${obj.parentItem.summary}`;
-        const text = new fabric.Text(tooltip, {fontSize: 14, font: 'Helvetica', textAlign: 'left', top: 0, left: 5});
+        const text = new fabric.Text(tooltip, {fontSize: 14, fontFamily: 'Helvetica', textAlign: 'left', top: 0, left: 5});
         const rect = new fabric.Rect({top: 0, left: 0, width: text.width + 10, height: 16, fill: 'rgba(194, 64, 64, 0.9)', rx: 4, ry: 4, transparentCorners: true});
         let left = obj.parentObject ? obj.parentObject.left : obj.left;
         _tooltipGroup = new fabric.Group([rect, text], {
@@ -264,6 +272,14 @@ function _fitToCanvas(canvas) {
   canvas.viewportTransform[4] = canvas.viewportTransform[5] = 0;
 };
 
+function _renderTeamDate(canvas) {
+  const dateFormatted = formatDate(_date);
+  const teamSprint = SPRINT(_team.sprint);
+  let svgImageURL = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' style='background-color:%23000000%3B%27%3E%3Cstyle type='text/css'%3E text %7B fill: gray; font-family: Avenir; opacity: 0.66; %7D%0A%3C/style%3E%3Cdefs%3E%3Cpattern id='textstripe' patternUnits='userSpaceOnUse' width='650' height='200' patternTransform='rotate(-45)'%3E%3Ctext y='40' font-family='Avenir' font-size='36'%3E${dateFormatted}%3Ctspan%20class%3D%22em%22%20dx%3D%222.0cm%22%20dy%3D%222.5cm%22%3E${teamSprint}%3C%2Ftspan%3E%3C/text%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23textstripe)' /%3E%3C/svg%3E")`;
+  const canvasDiv = document.getElementById('canvas-bg');
+  canvasDiv.style.backgroundImage = svgImageURL;
+}
+
 function calcFeatSize(sp) {
   if (sp >= 40) {
     return 310;
@@ -278,10 +294,18 @@ function calcFeatSize(sp) {
 }
 
 function _renderItemsCanvas(canvas, items) {
+  _renderTeamDate(canvas);
   let left = 50;
   let top = 50;
   let rowHeight = 0;
-  const ratio = canvas.height / canvas.width - 0.1;
+  let ratio = canvas.height / canvas.width - 0.1;
+  if (ratio > 1) {
+    ratio = canvas.width / canvas.height - 0.1;
+  }
+  if (ratio < 0.7) {
+    ratio = 0.7;
+  }
+
   items.forEach((item) => {
     const effort = EFF(convertToSP(item.computed_effort, item.unit));
     let feat = _createFeat(item.jira, effort, item.summary);
@@ -300,7 +324,7 @@ function _renderItemsCanvas(canvas, items) {
     }
 
     left += feat.width * feat.scaleX + 50;
-    if (left > canvas.width * feat.scaleX * ratio - 310) {
+    if (left > canvas.width * feat.scaleX * ratio) {
       left = 50;
       top += rowHeight * feat.scaleY + 50;
       rowHeight = 0;
