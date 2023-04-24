@@ -75,7 +75,7 @@ window.onload = function () {
 
   window.addEventListener('resize', () => {
     _refreshMap = true;
-    if (_canvasMode) {
+    if (_canvasMode && _canvasMap) {
       refreshMap();
     }
   });
@@ -1437,13 +1437,18 @@ function toggleItemMap() {
     enableDisableNavigation();
   }
   show(document.getElementById("upload"), !_canvasMode);
+  show(document.getElementById("copy_to_clipboard"), !_canvasMode);
   show(document.getElementById("fit_canvas"), _canvasMode);
+  show(document.getElementById("download"), _canvasMode);
 }
 
 var _fabricJSLoaded = false;
-function showTeamMap(data=null) {
+function showTeamMap(data=null, items=_items, hook=null) {
   let callback = function() {
-    _showTeamMap(data);
+    _showTeamMap(data, items, hook !== null);
+    if (hook) {
+      hook(_canvasMap);
+    }
   };
   if (!_fabricJSLoaded) {
     loadJSSync("/public/fabric.min.js");
@@ -1455,20 +1460,26 @@ function showTeamMap(data=null) {
   }
 }
 
-function _showTeamMap(data=null) {
+function _showTeamMap(data, items, renderImmediate=false) {
   const headerEl = document.getElementById("header");
   const footerEl = document.getElementById("footer");
   const adjustHeight = headerEl.offsetHeight + footerEl.offsetHeight;
   const map = { canvasData: data };
+  clearCanvasMap();
   _canvasMap = _initDraw(window.innerWidth, window.innerHeight - adjustHeight, map);
   enableDisableNavigation();
 
-  if (!data && _items) {
-    _renderItemsCanvas(_canvasMap, _items);
+  _renderTeamDate(canvas);
+  if (!data && items) {
+    _renderItemsCanvas(_canvasMap, items);
   }
 
   _fitToCanvas(_canvasMap);
-  _canvasMap.requestRenderAll();
+  if (renderImmediate) {
+    _canvasMap.renderAll();
+  } else {
+    _canvasMap.requestRenderAll();
+  }
 }
 
 const MAX_SELECTION = 20;

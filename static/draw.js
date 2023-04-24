@@ -14,32 +14,9 @@ function _initDraw(width, height, map) {
 
   fabric.Object.prototype.transparentCorners = false;
 
-  //document.getElementById('download').onclick = saveCanvasImage;
-
-  function saveCanvasImage(e) {
+  document.getElementById('download').onclick = function() {
     downloadImage(this, canvas);
-  }
-
-  function downloadImage(link, target) {
-    let filename = _teamName ?? 'map_canvas';
-    const format = 'png';
-    if (filename.indexOf('.') < 0) {
-      filename = `${filename}.${format}`;
-    }
-    if (format === "jpeg" || format === "png") {
-      link.href = target.toDataURL({
-        format: format,
-        quality: 0.8
-      });  
-    } else if (format === "svg") {
-      const data = target.toSVG(); 
-      link.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
-    } else {
-      const data = JSON.stringify(target.toJSON());
-      link.href = 'data:application/json,' + encodeURIComponent(data);
-    }
-    link.download = filename;
-  }
+  };
 
   fabric.Object.prototype.selectable = false;
   fabric.Image.prototype.hoverCursor = "pointer";
@@ -51,7 +28,7 @@ function _initDraw(width, height, map) {
   // Pan support
   canvas.on('mouse:down', function(opt) {
     const e = opt.e;
-    if (e.altKey || true) {
+    if (opt.button === 1 && (e.altKey || true)) {
       this.defaultCursor = 'grab';
       this.isDragging = true;
       this.selection = false;
@@ -60,7 +37,7 @@ function _initDraw(width, height, map) {
     }
   });
   canvas.on('mouse:move', function(opt) {
-    if (this.isDragging) {
+    if (opt.button === 1 && this.isDragging) {
       const e = opt.e;
       var vpt = this.viewportTransform;
       vpt[4] += e.clientX - this.lastPosX;
@@ -109,7 +86,7 @@ function _initDraw(width, height, map) {
           }
           assigneeText = " ["+ assigneeName +"]";
         }
-        writeMessage(`${obj.id ?? ""} [${obj.status ?? "Unknown"}] - "${obj.summary ?? ""}"${assigneeText}`);
+        writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}] - "${obj.summary ?? ""}"${assigneeText}`);
       }
 
       if ((obj.parentItem) && !_tooltipGroup) {
@@ -140,14 +117,6 @@ function _initDraw(width, height, map) {
   });
 
   // Zoom support
-  function fixZoom(zoom) {
-    zoom = toFixed(zoom);
-    if (zoom > 5) zoom = 5;
-    else if (zoom < 0.1) zoom = 0.1;
-    else if (isNaN(zoom)) zoom = 1;
-    return zoom;
-  }
-
   canvas.on('mouse:wheel', function(opt) {
     let delta = opt.e.deltaY;
     let zoom = canvas.getZoom();
@@ -160,6 +129,26 @@ function _initDraw(width, height, map) {
   return canvas;
 };
 
+function downloadImage(link, target, format="png") {
+  let filename = _team.name ?? 'map_canvas';
+  if (filename.indexOf('.') < 0) {
+    filename = `${filename}.${format}`;
+  }
+  if (format === "jpeg" || format === "png") {
+    link.href = target.toDataURL({
+      format: format,
+      quality: 0.8
+    });  
+  } else if (format === "svg") {
+    const data = target.toSVG(); 
+    link.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
+  } else {
+    const data = JSON.stringify(target.toJSON());
+    link.href = 'data:application/json,' + encodeURIComponent(data);
+  }
+  link.download = filename;
+}
+
 function handleCanvasPopupMenu(canvas, menu, e) {
   let target = canvas.findTarget(e, false);
   let type = null;
@@ -171,8 +160,9 @@ function handleCanvasPopupMenu(canvas, menu, e) {
   }
   e.preventDefault();
 
+  removeChildren(menu);
   if (type === "feat" || type === "item") {
-    buildCanvasPopupMenu(target, menu);
+    buildTargetPopupMenu(target, menu);
     menu.style.display = 'block';
     menu.style.left = e.pageX+"px";
     menu.style.top = e.pageY+"px";
@@ -183,8 +173,7 @@ function handleCanvasPopupMenu(canvas, menu, e) {
   return false;
 };
 
-function buildCanvasPopupMenu(target, menu) {
-  removeChildren(menu);
+function buildTargetPopupMenu(target, menu) {
   let mi = document.createElement("span");
   mi.className = "list-group-item list-group-item-secondary";
   mi.innerHTML = `<h5 class="mb-1"><span class="text-decoration-underline">${target.id}</span> Status</h5>`;
@@ -249,6 +238,18 @@ function setObjectStatus(itemId, itemStatus) {
   closePopupMenu();
 }
 
+function fixZoom(zoom) {
+  zoom = toFixed(zoom);
+  if (zoom > 5) zoom = 5;
+  else if (zoom < 0.1) zoom = 0.1;
+  else if (isNaN(zoom)) zoom = 1;
+  return zoom;
+}
+
+function updateZoomValues(canvas) {
+  _canvasMap.viewportTransform[4] = canvas.viewportTransform[5] = 0;
+}
+
 function _fitToCanvas(canvas) {
   canvas.discardActiveObject();
   const activeObj = new fabric.ActiveSelection(canvas.getObjects(), {
@@ -269,7 +270,7 @@ function _fitToCanvas(canvas) {
   });
   canvas.setZoom(1);
   canvas.discardActiveObject();
-  canvas.viewportTransform[4] = canvas.viewportTransform[5] = 0;
+  updateZoomValues(canvas);
 };
 
 function _renderTeamDate(canvas) {
@@ -281,7 +282,10 @@ function _renderTeamDate(canvas) {
 }
 
 function calcFeatSize(sp) {
-  if (sp >= 40) {
+  // width = (N * 170 + 50) / 4
+  if (sp >= 80) {
+    return 607.5;
+  } else if (sp >= 40) {
     return 310;
   } else if (sp >= 21) {
     return 267.5;
@@ -294,7 +298,6 @@ function calcFeatSize(sp) {
 }
 
 function _renderItemsCanvas(canvas, items) {
-  _renderTeamDate(canvas);
   let left = 50;
   let top = 50;
   let rowHeight = 0;

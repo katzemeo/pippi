@@ -23,13 +23,16 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
     this.set('id', options.id || '');
     this.set('sp', options.sp || NaN);
     this.set('status', options.status || 'pending');
+    this.set('borderColor', 'green');
+    this.set('borderScaleFactor', 2);
+    this.set('borderDashArray', [4, 4]);
   },
 
   toObject: function() {
     return fabric.util.object.extend(this.callSuper('toObject'), {
       summary: this.get('summary'),
       id: this.get('id'),
-      sp: this.get('sp'),
+      sp: Number(this.get('sp')),
       status: this.get('status')
     });
   },
@@ -116,7 +119,7 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
     if (_img_status[this.status]) {
       ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
     } else {
-      console.log(`Unknown status "${this.status}" in Feat._render()`);
+      console.log(`Unknown status "${this.status}" in Feat._render(${this.id})`);
     }
   }
 });
@@ -141,9 +144,6 @@ function _createFeat(id, sp, summary = null) {
     summary: summary ?? "My Feature",
     id: id,
     sp: sp,
-    borderColor: 'green',
-    borderScaleFactor: 2,
-    borderDashArray: [4, 4],
     status: "backlog"
   });
   return feat;
@@ -160,13 +160,16 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
     this.set('id', options.id || '');
     this.set('sp', options.sp || NaN);
     this.set('status', options.status || 'pending');
+    this.set('borderColor', 'green');
+    this.set('borderScaleFactor', 2);
+    this.set('borderDashArray', [4, 4]);
   },
 
   toObject: function() {
     return fabric.util.object.extend(this.callSuper('toObject'), {
       summary: this.get('summary'),
       id: this.get('id'),
-      sp: this.get('sp'),
+      sp: Number(this.get('sp')),
       status: this.get('status')
     });
   },
@@ -251,7 +254,7 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
     if (_img_status[this.status]) {
       ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
     } else {
-      console.log(`Unknown status "${this.status}" in Feat._render()`);
+      console.log(`Unknown status "${this.status}" in Item._render(${this.id})`);
     }
   }
 });
@@ -273,9 +276,6 @@ function _createItem(id, sp, summary = null) {
     summary: summary ?? "My Item",
     id: id,
     sp: sp,
-    borderColor: 'green',
-    borderScaleFactor: 2,
-    borderDashArray: [4, 4],
     status: "ready"
   });
   return feat;
