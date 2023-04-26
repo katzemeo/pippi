@@ -228,6 +228,7 @@ function processTeamItems(data) {
   team.capacity = data.capacity ?? team.capacity;
   team.base = data.base ?? team.base;
   team.sprint = data.sprint ?? team.sprint;
+  team.delta = data.delta ?? team.delta;
   team.date = data.date ?? team.date;
   processTeamMembers(data, team);
 
@@ -667,7 +668,7 @@ function getPreviousSprint() {
 function loadTeamItems(teamName, sprint = null) {
   let url = "/items/"+ teamName;
   if (sprint) {
-    url += "?" + new URLSearchParams({ sprint: sprint }).toString();
+    url += "?" + new URLSearchParams({ sprint: sprint, delta: true }).toString();
   }
   fetch(url, {
     method: "GET",

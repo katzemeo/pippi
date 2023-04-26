@@ -12,6 +12,11 @@ _img_pending.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My
 _img_backlog.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgOTYgOTYwIDk2MCIgd2lkdGg9IjQ4Ij48cGF0aCBkPSJtNjI3IDc2OSA0NS00NS0xNTktMTYwVjM2M2gtNjB2MjI1bDE3NCAxODFaTTQ4MCA5NzZxLTgyIDAtMTU1LTMxLjV0LTEyNy41LTg2UTE0MyA4MDQgMTExLjUgNzMxVDgwIDU3NnEwLTgyIDMxLjUtMTU1dDg2LTEyNy41UTI1MiAyMzkgMzI1IDIwNy41VDQ4MCAxNzZxODIgMCAxNTUgMzEuNXQxMjcuNSA4NlE4MTcgMzQ4IDg0OC41IDQyMVQ4ODAgNTc2cTAgODItMzEuNSAxNTV0LTg2IDEyNy41UTcwOCA5MTMgNjM1IDk0NC41VDQ4MCA5NzZabTAtNDAwWm0wIDM0MHExNDAgMCAyNDAtMTAwdDEwMC0yNDBxMC0xNDAtMTAwLTI0MFQ0ODAgMjM2cS0xNDAgMC0yNDAgMTAwVDE0MCA1NzZxMCAxNDAgMTAwIDI0MHQyNDAgMTAwWiIvPjwvc3ZnPg==";
 const _img_status = { completed:_img_completed, inprogress:_img_inprogress, blocked:_img_blocked, ready:_img_ready, pending:_img_pending, backlog:_img_backlog };
 
+const _img_asterisk = document.createElement('img');
+const _img_add = document.createElement('img');
+_img_asterisk.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgOTYgOTYwIDk2MCIgd2lkdGg9IjQ4Ij48cGF0aCBkPSJNNDI2IDkyMFY2NzBMMjEwIDc5NWwtNTUtOTMgMjE3LTEyNi0yMTYtMTI1IDU0LTkzIDIxNiAxMjVWMjMyaDEwOHYyNTFsMjE2LTEyNSA1NCA5My0yMTYgMTI1IDIxNyAxMjYtNTUgOTMtMjE2LTEyNXYyNTBINDI2WiIvPjwvc3ZnPg==";
+_img_add.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgOTYgOTYwIDk2MCIgd2lkdGg9IjQ4Ij48cGF0aCBkPSJNNDUwIDg1NlY2MDZIMjAwdi02MGgyNTBWMjk2aDYwdjI1MGgyNTB2NjBINTEwdjI1MGgtNjBaIi8+PC9zdmc+"
+
 fabric.Feat = fabric.util.createClass(fabric.Rect, {
   type: 'feat',
 
@@ -120,6 +125,18 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
       ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
     } else {
       console.log(`Unknown status "${this.status}" in Feat._render(${this.id})`);
+    }
+
+    if (this.item && this.item.delta) {
+      const delta = this.item.delta;
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      if (delta === "new") {
+        ctx.drawImage(_img_add, this.width/2-size, -this.height/2 + size, size, size);
+      } else if (delta === "updated") {
+        ctx.drawImage(_img_asterisk, this.width/2-size, -this.height/2 + size, size, size);
+      }
+      ctx.restore();  
     }
   }
 });
@@ -255,6 +272,18 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
       ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
     } else {
       console.log(`Unknown status "${this.status}" in Item._render(${this.id})`);
+    }
+
+    if (this.item && this.item.delta) {
+      const delta = this.item.delta;
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      if (delta === "new") {
+        ctx.drawImage(_img_add, this.width/2-size, -this.height/2, size, size);
+      } else if (delta === "updated") {
+        ctx.drawImage(_img_asterisk, this.width/2-size, -this.height/2, size, size);
+      }
+      ctx.restore();  
     }
   }
 });

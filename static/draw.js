@@ -358,6 +358,13 @@ function _renderChildrenItems(canvas, parentItem, parentObject) {
     // Handle nested items (i.e. epics)
     if (child.children) {
       nextColRow(item, true);
+      child.children.sort(function (a, b) {
+        let result = compare(a, b, "status") * -1;
+        if (result === 0) {
+          result = compare(a, b, "story.estimate");
+        }
+        return result;
+      });
       child.children.forEach((story) => {
         item = _createItem(story.jira, story.estimate, story.summary);
         item.item = story;
