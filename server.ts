@@ -1,8 +1,9 @@
-import "./utils/console.ts"; // customize console
+import "./utils/console.ts";
 import env from "./utils/env.ts";
 import { Application, Router, send, Status } from "./deps.ts";
 import errorHandler from "./controllers/errorHandler.ts";
 import status_404 from "./controllers/404.ts";
+import healthz from "./controllers/healthz.ts";
 import uploadItems from "./controllers/uploadItems.ts";
 import getItems from "./controllers/getItems.ts";
 import getItem from "./controllers/getItem.ts";
@@ -14,8 +15,29 @@ const logRequest: boolean = env.SERVER_LOG_REQUEST === "true";
 // If true, implement file sending directly instead of using Oak send()
 const DEPLOY_OAK_SEND_WORKAROUND = true;
 
+var ready = false;
+
+function livez({ response }: { response: any }) {
+  console.debug(`livez() - ${ready}`);
+  response.body = "Alive";
+}
+
+function readyz({ response }: { response: any }) {
+  console.debug(`readyz() - ${ready}`);
+  if (ready) {
+    response.body = "Ready";
+    response.code = 200;
+  } else {
+    response.body = "Not Ready";
+    response.code = 503;
+  }
+}
+
 const router = new Router();
 router
+  .get("/healthz", healthz)
+  .get("/livez", livez)
+  .get("/readyz", readyz)
   .post("/items/upload", uploadItems)
   .get("/items/:team", getItems)
   .get("/item/:id", getItem)
@@ -151,6 +173,39 @@ if (env.DEVELOPMENT_MODE == 'true') {
   }
 }
 
+app.addEventListener("listen", ({ hostname, port, secure }) => {
+  console.info(
+    `Listening on: ${secure ? "https://" : "http://"}${hostname ?? "localhost"
+    }:${port}`
+  );
+});
+
+// Handle Ctrl-C
+Deno.addSignalListener("SIGINT", () => {
+  console.warn("SIGINT: Interrupted!");
+  Deno.exit();
+});
+
+// Handle Ctrl-Break
+Deno.addSignalListener("SIGBREAK", () => {
+  console.warn("SIGBREAK: Interrupted!");
+});
+
+// Handle graceful shutdown (i.e. kill -s SIGTERM <deno PID>)
+// Note: not supported on WINDOWS
+/*
+Deno.addSignalListener("SIGTERM", () => {
+  ready = false;
+  console.warn("SIGTERM: Graceful shutdown initiated!");
+  setTimeout(shutdown, 5*1000);
+});
+
+function shutdown() {
+  console.warn("shutdown: Exiting...");
+  Deno.exit();
+}
+*/
+
 let server: any;
 if (env.ENABLE_TLS == 'true') {
   console.info(`Listening on: https://${HOST ?? "localhost"}:${PORT}`);
@@ -168,6 +223,7 @@ if (env.ENABLE_TLS == 'true') {
   });
 }
 
+ready = true;
 for await (const conn of server) {
   serveHttp(conn);
 }

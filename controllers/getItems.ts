@@ -22,6 +22,29 @@ async function loadPreviousSprint(json: any, teamName: string, teamDir: string) 
   return null;
 }
 
+function valueEquals(v1: any, v2: any) {
+  if (v1 == v2) {
+    return true;
+  } else if (v1 && v2) {
+    if (v1 instanceof Array && v2 instanceof Array) {
+      if (v1.length != v2.length) {
+        return false;
+      }
+
+      for (let i=0; i < v1.length; i++) {
+        if (v1[i] instanceof Array && v2[i] instanceof Array) {
+          if (!valueEquals(v1[i], (v2[i]))) {
+            return false;
+          }
+        } else if (!valueEquals(v1[i], v2[i])) {
+          return false;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 async function computeDelta(json: any, teamName: string, teamDir: string) {
   const teamKeys = ["name", "squad", "sp_per_day_rate", "capacity", "computed_sp", "completed", "remaining"];
   const base: any = { added: {}, updated: {}, unchanged: {}, removed: {} };
@@ -36,14 +59,14 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
       let diffs = Object.fromEntries(Object.entries(item).filter(([k, v]) =>
         k !== "completed" && k != "remaining" && k != "computed_sp" &&
         k !== "updated" && k != "resolved" && k != "assignee" && k !== "summary" && k != "description" && k != "ac" &&
-        k != "children" && baseItem[k] !== v))
+        k != "children" && !valueEquals(baseItem[k], v)));
       if (Object.keys(diffs).length > 0) {
         let changes: any = { type: item.type, diffs: [], summary: item.summary };
         Object.entries(diffs).forEach(([k, v]) => {
           let c: any = {};
           c["key"] = k;
-          c["old"] = baseItem[k];
-          c["new"] = v;
+          c["old"] = baseItem[k] ?? "(none)";
+          c["new"] = v ?? "(none)";
           changes.diffs.push(c);
         });
         //console.log(changes);
@@ -107,8 +130,8 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
             let c: any = {};
             //c[k] = `${baseItem[k]} -> ${feat[k]}`;
             c["key"] = k;
-            c["old"] = baseItem[k];
-            c["new"] = feat[k];
+            c["old"] = baseItem[k] ?? "(none)";
+            c["new"] = feat[k] ?? "(none)";
             changes.diffs.push(c);
           }
         });  
@@ -120,8 +143,8 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
       if (previous[k] !== json[k]) {
         //base.updated[k] = `${previous[k]} -> ${json[k]}`;
         base.updated["key"] = k;
-        base.updated["old"] = previous[k];
-        base.updated["new"] = json[k];
+        base.updated["old"] = previous[k] ?? "(none)";
+        base.updated["new"] = json[k] ?? "(none)";
       }  
     });
 

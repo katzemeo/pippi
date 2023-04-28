@@ -113,7 +113,7 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
     const startX = -this.width/2 + 3;
     const startY = -this.height/2 + 12;
     ctx.fillText(text, startX, startY);
-    var textMeasurement = ctx.measureText(featId);
+    const textMeasurement = ctx.measureText(featId);
     ctx.fillRect(startX, startY + 1, textMeasurement.width, 1);
     if (this.sp >= 0) {
       ctx.font = 'bold 12px Courier';
@@ -132,11 +132,11 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
       ctx.save();
       ctx.globalAlpha = 0.5;
       if (delta === "new") {
-        ctx.drawImage(_img_add, this.width/2-size, -this.height/2 + size, size, size);
+        ctx.drawImage(_img_add, this.width/2-size, -this.height/2 + size - 7, size, size);
       } else if (delta === "updated") {
-        ctx.drawImage(_img_asterisk, this.width/2-size, -this.height/2 + size, size, size);
+        ctx.drawImage(_img_asterisk, this.width/2-size, -this.height/2 + size - 7, size, size);
       }
-      ctx.restore();  
+      ctx.restore();
     }
   }
 });
@@ -261,8 +261,8 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
     const startX = -this.width/2 + 3;
     const startY = -12;
     ctx.fillText(text, startX, startY);
-    var textMeasurement = ctx.measureText(text);
-    ctx.fillRect(startX, startY + 1, textMeasurement.width, 1);
+    //const textMeasurement = ctx.measureText(text);
+    //ctx.fillRect(startX, startY + 1, textMeasurement.width, 1);
     ctx.font = '32px Helvetica';
     if (this.sp >= 0) {
       ctx.fillText(`${this.sp} SP`, startX, startY + 40);

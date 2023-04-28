@@ -70,7 +70,7 @@ window.onload = function () {
 
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
   tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl)
+    return new bootstrap.Tooltip(tooltipTriggerEl, { trigger : 'hover' });
   });
 
   window.addEventListener('resize', () => {
@@ -185,16 +185,32 @@ function updateItemForTeam(item, team) {
     item.progress = toFixed(item.completed * 100 / item.computed_effort);
   }
 
-  if (item.due || item.sprint_start || item.sprint_end) {
+  if (item.due || item.sprint_start || item.sprint_end || item.delta) {
     let notes = `<ul>`;
     if (item.due) {
-      notes += `<li>Due: ${formatDate(item.due)}</li>`;
+      notes += `<li>DUE: ${formatDate(item.due)}</li>`;
     }
     if (item.sprint_start) {
-      notes += `<li>Start: ${item.sprint_start}</li>`;
+      notes += `<li>START: ${item.sprint_start}</li>`;
     }
     if (item.sprint_end) {
-      notes += `<li>End: ${item.sprint_end}</li>`;
+      notes += `<li>END: ${item.sprint_end}</li>`;
+    }
+
+    if (item.delta && team.delta) {
+      if (item.delta === "new") {
+        const details = team.delta.added[item.jira];
+        notes += `<li>ESTIMATE: ${details.estimate ?? "?"} SP</li>`;
+      } else if (team.delta.updated) {
+        const details = team.delta.updated[item.jira];
+        if (details.diffs) {
+          details.diffs.forEach((c) => {
+            //if (c.key === 'status' || c.key === 'completed' || c.key === 'sprint' || c.key === 'theme' || c.key === 'estimate') {
+              notes += `<li>${c.key.toUpperCase()}: ${c.old} &rarr; ${c.new}</li>`;
+            //}
+          });
+        }
+      }
     }
     notes += `</ul>`;
     item.computed_notes = notes;
@@ -375,7 +391,9 @@ function setTeam(team) {
   if (resetUI) {
     _SPDayRate = team ? team.sp_per_day_rate : DEFAULT_SP_DAY_RATE;
     _sortKey = "";
-    _filterKey = _filterKeyParam;
+    if (!_canvasMode) {
+      _filterKey = _filterKeyParam;
+    }
     _refresh = true;
     _refreshMap = true;
 
@@ -886,20 +904,48 @@ function createSelectionCheck(item) {
   return markup;
 }
 
-function createPriorityLink(item) {
-  let markup = `<div class="row">`;
-
-  markup += `<div class="col">${(item.priority >= 0) ? item.priority: ""}</div>`;
+function createDeltaDiv(item) {
+  let markup = null;
   if (item.computed_notes) {
-    markup +=
-    `<div class="col" style="padding-top:4px">
-        <a tabindex="0" title="${item.type} ${item.jira ?? ""} Notes" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-content="${ESC(item.computed_notes)}">
+    markup = "";
+    if (item.delta) {
+      markup +=
+      `<div class="col-auto" style="padding-top:4px">
+        <a tabindex="0" title="${item.jira ?? ""} ${item.delta.toUpperCase()}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="${ESC(item.computed_notes)}">
+          <i class="material-icons row" style="opacity: 0.5;">${item.delta === "new" ? "add" : "emergency"}</i>
+        </a>
+      </div>`;
+    } else {
+      markup +=
+      `<div class="col-auto" style="padding-top:4px">
+        <a tabindex="0" title="${item.jira ?? ""} Notes" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="${ESC(item.computed_notes)}">
           <i class="material-icons row">event_note</i>
         </a>
       </div>`;
+    }
+  }
+  return markup;
+}
+
+function createPriorityNotes(item) {
+  let markup = `<div class="row">`;
+  markup += `<div class="col">${(item.priority >= 0) ? item.priority: ""}</div>`;
+  const delta = createDeltaDiv(item);
+  if (delta) {
+    markup += delta;
   }
   markup += `</div>`;
+  return markup;
+}
 
+function createDeltaNotes(item, n) {
+  let markup = `<div class="row">`;
+  markup += `<div class="col">${n}</div>`;
+  const delta = createDeltaDiv(item);
+  if (delta) {
+    markup += delta;
+  }
+  markup += `</div>`;
   return markup;
 }
 
@@ -911,13 +957,21 @@ function createIssueAnchor(item) {
   return `<a class="${className} text-decoration-none" href="${ISSUE_WEBSITE_URL}${item.jira}" target="item_jira">${item.jira}</a>`;
 }
 
-function createIssueLink(item) {
+function createIssueLink(item, showDelta=false, description=null) {
   let markup = `<div class="row">`;
+  if (showDelta) {
+    const delta = createDeltaDiv(item);
+    if (delta) {
+      markup += delta;
+    }
+  }
   if (item.jira) {
-    markup += `<div class="col">${createIssueAnchor(item)}</div>`;
+    markup += `<div class="col-auto">${createIssueAnchor(item)}</div>`;
+  }
+  if (description) {
+    markup += `<div class="col-auto">${description}</div>`;
   }
   markup += `</div>`;
-
   return markup;
 }
 
@@ -992,7 +1046,7 @@ function renderItems() {
         cell.title = item.t_shirt_size;
       }
 
-      cell = renderCell(row, createPriorityLink(item));
+      cell = renderCell(row, createPriorityNotes(item));
       if (item.client) {
         cell.title = item.client;
       }
@@ -1167,8 +1221,8 @@ function showChildren(parentJira) {
 
   const label = document.getElementById("childrenItemsLabel");
   removeChildren(label);
-  label.innerHTML = `${createIssueAnchor(parent)} (${parent.t_shirt_size ?? ""}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`;
 
+  label.innerHTML = createIssueLink(parent, true, `(${parent.t_shirt_size ?? ""}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`);
   const statusEl = document.getElementById("parentItemLabel");
   removeChildren(statusEl);
 
@@ -1216,8 +1270,10 @@ function renderChildrenItems() {
   let row;
   let cell;
   items.forEach(item => {
+    updateItemForTeam(item, _team);
+
     row = document.createElement("tr");
-    cell = renderCell(row, n);
+    cell = renderCell(row, createDeltaNotes(item, n));
     cell.className = "text-muted";
 
     cell = renderCell(row, createIssueLink(item));
@@ -1292,6 +1348,12 @@ function renderChildrenItems() {
 
     mytable.appendChild(row);
     n++;
+  });
+
+  // Warning: may not be performant
+  var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+  var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+    return new bootstrap.Popover(popoverTriggerEl, { html: true });
   });
 }
 
