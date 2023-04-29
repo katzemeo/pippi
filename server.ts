@@ -4,9 +4,9 @@ import { Application, Router, send, Status } from "./deps.ts";
 import errorHandler from "./controllers/errorHandler.ts";
 import status_404 from "./controllers/404.ts";
 import healthz from "./controllers/healthz.ts";
-import uploadItems from "./controllers/uploadItems.ts";
 import getItems from "./controllers/getItems.ts";
 import getItem from "./controllers/getItem.ts";
+import uploadItems from "./controllers/uploadItems.ts";
 
 const HOST = env.HOST ?? "0.0.0.0";
 const PORT = env.PORT ? parseInt(env.PORT) : 8000;
@@ -17,12 +17,12 @@ const DEPLOY_OAK_SEND_WORKAROUND = true;
 
 var ready = false;
 
-function livez({ response }: { response: any }) {
+function livez({ response }: { response: any; }) {
   console.debug(`livez() - ${ready}`);
   response.body = "Alive";
 }
 
-function readyz({ response }: { response: any }) {
+function readyz({ response }: { response: any; }) {
   console.debug(`readyz() - ${ready}`);
   if (ready) {
     response.body = "Ready";
@@ -38,9 +38,9 @@ router
   .get("/healthz", healthz)
   .get("/livez", livez)
   .get("/readyz", readyz)
-  .post("/items/upload", uploadItems)
   .get("/items/:team", getItems)
   .get("/item/:id", getItem)
+  .post("/items/upload", uploadItems)
 
 const app = new Application();
 
@@ -172,13 +172,6 @@ if (env.DEVELOPMENT_MODE == 'true') {
     console.warn(`Location: "${window.location}"`);
   }
 }
-
-app.addEventListener("listen", ({ hostname, port, secure }) => {
-  console.info(
-    `Listening on: ${secure ? "https://" : "http://"}${hostname ?? "localhost"
-    }:${port}`
-  );
-});
 
 // Handle Ctrl-C
 Deno.addSignalListener("SIGINT", () => {

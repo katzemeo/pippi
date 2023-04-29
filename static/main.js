@@ -30,6 +30,10 @@ var _SPDayRate = DEFAULT_SP_DAY_RATE;
 var _sortOrders = {};
 var _sortKey = "";
 var _teamNameParam = null;
+var _statusParam = null;
+var _status = _statusParam;
+var _assigneeParam = null;
+var _assignee = _assigneeParam;
 var _filterKeyParam = null;
 var _filterKey = _filterKeyParam;
 var _team = EMPTY_TEAM;
@@ -37,6 +41,10 @@ var _items = [];
 var _toggleEditSPDayRate = false;
 var _refresh = true;
 var _userInfo = null;
+
+function isEmpty(value) {
+  return (!value || value.trim() === "");
+}
 
 function clearState() {
   _teams = {};
@@ -49,6 +57,14 @@ window.onload = function () {
   if (url.searchParams.has("team")) {
     _teamNameParam = url.searchParams.get("team");
     _teamName = _teamNameParam;
+  }
+  if (url.searchParams.has("status")) {
+    _statusParam = url.searchParams.get("status");
+    _status = _statusParam != null ? _statusParam.toUpperCase() : null;
+  }
+  if (url.searchParams.has("assignee")) {
+    _assigneeParam = url.searchParams.get("assignee");
+    _assignee = _assigneeParam;
   }
   if (url.searchParams.has("filter")) {
     _filterKeyParam = url.searchParams.get("filter");
@@ -200,6 +216,7 @@ function updateItemForTeam(item, team) {
     if (item.delta && team.delta) {
       if (item.delta === "new") {
         const details = team.delta.added[item.jira];
+        notes += `<li>REPORTER: ${lookupTeamMember(details.reporter)}</li>`;
         notes += `<li>ESTIMATE: ${details.estimate ?? "?"} SP</li>`;
       } else if (team.delta.updated) {
         const details = team.delta.updated[item.jira];
@@ -494,7 +511,10 @@ function writeSummary() {
       } 
     });
 
-    msg += `Completed: ${numCompleted}`;
+    msg += `COUNT: ${_items.length}`;
+    if (numCompleted > 0) {
+      msg += `, Completed: ${numCompleted}`;
+    }
     if (numInProgress > 0) {
       msg += `, In Progress: ${numInProgress}`;
     }
@@ -552,15 +572,14 @@ function filterItems() {
   if (items) {
     var filterKey = _filterKey && _filterKey.toLowerCase();
     var order = _sortOrders[_sortKey] || 1;  
-    if (filterKey) {
+    if (_status || _assignee || filterKey) {
+      //console.log(`filterItems() - status=${_status}, assignee=${_assignee}, filter=${filterKey}`);
       items = items.filter(function (row) {
-        return Object.keys(row).some(function (key) {
-          return (
-            String(row[key])
-              .toLowerCase()
-              .indexOf(filterKey) > -1
-          );
-        });
+        return ((isEmpty(_status) || row["status"] === _status) &&
+          (isEmpty(_assignee) || row["assignee"] === _assignee) &&
+          (isEmpty(filterKey) || Object.keys(row).some(function (key) {
+            return String(row[key]).toLowerCase().indexOf(filterKey) > -1
+          })));
       });
     }
     if (_sortKey) {
@@ -615,15 +634,21 @@ function enableDisableNavigation() {
 }
 
 function showCompleted(key) {
-  toggleSearchKey(key, "completed");
+  _status = _status === "COMPLETED" ? null : "COMPLETED";
+  toggleSearchKey(key, "");
+  refreshMap();
 }
 
 function showPending(key) {
-  toggleSearchKey(key, "pending");
+  _status = _status === "PENDING" ? null : "PENDING";
+  toggleSearchKey(key, "");
+  refreshMap();
 }
 
 function showBlocked(key) {
-  toggleSearchKey(key, "blocked");
+  _status = _status === "BLOCKED" ? null : "BLOCKED";
+  toggleSearchKey(key, "");
+  refreshMap();
 }
 
 function toggleSearchKey(key, value) {
@@ -643,7 +668,7 @@ function loadMyTeam() {
 function showNext() {
   const sprint = getNextSprint();
   const teamName = _team.name;
-  _team = EMPTY_TEAM; // Force ResetUI and refresh
+  //_team = EMPTY_TEAM; // Force ResetUI and refresh
   loadTeamItems(teamName, sprint);
   _refreshMap = true;
 }
@@ -651,7 +676,7 @@ function showNext() {
 function showPrevious() {
   const sprint = getPreviousSprint();
   const teamName = _team.name;
-  _team = EMPTY_TEAM; // Force ResetUI and refresh
+  //_team = EMPTY_TEAM; // Force ResetUI and refresh
   loadTeamItems(teamName, sprint);
   _refreshMap = true;
 }
@@ -893,7 +918,7 @@ function computeStats() {
       percent += Number(e.getAttribute("data-team_pct"));
     });
 
-    const title = `${count} selected`;
+    const title = `Total Effort (${count} selected)`;
     writeStats(EFF(sum) + " SP", title);
     writePercent(`${PCT(percent)} %`, "Team %");
   }
@@ -993,6 +1018,15 @@ const RED = "color:#F93154";
 const GREEN = "color:#00B74A";
 const AMBER = "color:#FFA900";
 const BLUE = "color:#0D6EFD";
+
+function lookupTeamMember(memberID) {
+  let memberName = memberID;
+  if (_team.members && memberID) {
+    const member = _team.members[memberID];
+    memberName = member ? `${member.name} (${memberID})` : memberID;  
+  }
+  return memberName ?? "(unknown)";
+}
 
 function renderItems() {
   if (!_SPDayRate || isNaN(_SPDayRate)) {
@@ -1111,12 +1145,7 @@ function renderItems() {
         cell = renderCell(row, "");
       }
       if (item.assignee) {
-        let assigneeName = item.assignee;
-        if (_team.members) {
-          const assignee = _team.members[item.assignee];
-          assigneeName = assignee ? `${assignee.name} (${item.assignee})` : item.assignee;  
-        }
-
+        const assigneeName = lookupTeamMember(item.assignee);
         cell.title = "Assignee: " + assigneeName;
         item.computed_unassigned = assigneeName;
       } else {

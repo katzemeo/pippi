@@ -1,6 +1,5 @@
 import env from "../utils/env.ts";
-import { join } from "https://deno.land/std@0.179.0/path/mod.ts";
-
+import { join } from "../deps.ts";
 async function readJSONFromFile(fileName: string) {  
   try {
     const text = await Deno.readTextFile(fileName);
@@ -40,13 +39,14 @@ function valueEquals(v1: any, v2: any) {
           return false;
         }
       }
+      return true;
     }
   }
   return false;
 }
 
 async function computeDelta(json: any, teamName: string, teamDir: string) {
-  const teamKeys = ["name", "squad", "sp_per_day_rate", "capacity", "computed_sp", "completed", "remaining"];
+  const teamKeys = ["completed", "remaining"];
   const base: any = { added: {}, updated: {}, unchanged: {}, removed: {} };
   const itemMap: any = {};
 
@@ -59,7 +59,7 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
       let diffs = Object.fromEntries(Object.entries(item).filter(([k, v]) =>
         k !== "completed" && k != "remaining" && k != "computed_sp" &&
         k !== "updated" && k != "resolved" && k != "assignee" && k !== "summary" && k != "description" && k != "ac" &&
-        k != "children" && !valueEquals(baseItem[k], v)));
+        k != "children" && k != "is_depended_on_by" && !valueEquals(baseItem[k], v)));
       if (Object.keys(diffs).length > 0) {
         let changes: any = { type: item.type, diffs: [], summary: item.summary };
         Object.entries(diffs).forEach(([k, v]) => {
@@ -77,7 +77,7 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
       }
     } else {
       //console.log(`Adding item ${item.jira}`);
-      let changes: any = { estimate: item.estimate, summary: item.summary };
+      let changes: any = { reporter: item.reporter, estimate: item.estimate, summary: item.summary };
       base.added[item.jira] = changes;
       item.delta = "new";
     }
@@ -121,11 +121,12 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
       const baseItem = itemMap[feat.jira];
       if (baseItem) {
         teamKeys.forEach((k) => {
-          if (baseItem[k] !== feat[k]) {
+          if (!valueEquals(baseItem[k], feat[k])) {
             let changes: any = base.updated[feat.jira];
             if (!changes) {
               changes = { diffs: [], summary: feat.summary, type: feat.type };
               base.updated[feat.jira] = changes;
+              feat.delta = "updated";
             }
             let c: any = {};
             //c[k] = `${baseItem[k]} -> ${feat[k]}`;
@@ -134,18 +135,8 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
             c["new"] = feat[k] ?? "(none)";
             changes.diffs.push(c);
           }
-        });  
+        });
       }
-    });
-
-    // Compare totals to see if any progress / scope changed
-    teamKeys.forEach((k) => {
-      if (previous[k] !== json[k]) {
-        //base.updated[k] = `${previous[k]} -> ${json[k]}`;
-        base.updated["key"] = k;
-        base.updated["old"] = previous[k] ?? "(none)";
-        base.updated["new"] = json[k] ?? "(none)";
-      }  
     });
 
     Object.values(itemMap).forEach((item: any) => {

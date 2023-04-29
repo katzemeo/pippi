@@ -188,7 +188,7 @@ function buildTargetPopupMenu(target, menu) {
       caption = meta.captions[v] ?? toCaptionFromIdentifier(v);
     }
 
-    let className = "list-group-item list-group-item-action";
+    const className = "list-group-item list-group-item-action";
     if (v === "backlog") {
       icon = "schedule";
     } else if (v === "pending") {
