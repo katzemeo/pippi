@@ -1,3 +1,5 @@
+import { propagateDueDate } from "./getItems.ts";
+
 const MAX_JSON_FILE_SIZE = 500 * 1024;
 const ERR_UPLOAD_FILE_SIZE = "Unable to upload.  Please check the file size.";
 const ERR_UPLOAD_FILE_CONTENTS = "Unable to parse JSON file.  Please check file contents for team items.";
@@ -50,6 +52,13 @@ async function parseJSONTeamItems(uploadFilename: string, text: string) {
       action: e.action ?? null,
       children: e.children ?? null
     }));
+
+    // Recursively propagate any due dates from child to parent items
+    if (items) {
+      items.forEach((feat: any) => {
+        propagateDueDate(feat);
+      });  
+    }
 
     result.items = items;
     if (result.capacity) {

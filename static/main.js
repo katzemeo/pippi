@@ -31,9 +31,9 @@ var _sortOrders = {};
 var _sortKey = "";
 var _teamNameParam = null;
 var _statusParam = null;
-var _status = _statusParam;
+var _status = null;
 var _assigneeParam = null;
-var _assignee = _assigneeParam;
+var _assignee = null;
 var _filterKeyParam = null;
 var _filterKey = _filterKeyParam;
 var _team = EMPTY_TEAM;
@@ -43,7 +43,7 @@ var _refresh = true;
 var _userInfo = null;
 
 function isEmpty(value) {
-  return (!value || value.trim() === "");
+  return !value || ((typeof value) === "string" &&  value.trim() === "");
 }
 
 function clearState() {
@@ -60,11 +60,11 @@ window.onload = function () {
   }
   if (url.searchParams.has("status")) {
     _statusParam = url.searchParams.get("status");
-    _status = _statusParam != null ? _statusParam.toUpperCase() : null;
+    _status = toValueList(_statusParam);
   }
   if (url.searchParams.has("assignee")) {
     _assigneeParam = url.searchParams.get("assignee");
-    _assignee = _assigneeParam;
+    _assignee = toValueList(_assigneeParam);
   }
   if (url.searchParams.has("filter")) {
     _filterKeyParam = url.searchParams.get("filter");
@@ -194,18 +194,15 @@ function updateItemForTeam(item, team) {
   }
 
   if (!item.computed_effort) {
-    item.computed_effort = (item.completed ?? 0) + item.remaining;
+    item.computed_effort = (item.completed ?? 0) + (item.remaining ?? 0);
   }
 
   if (item.completed && item.computed_effort > 0) {
     item.progress = toFixed(item.completed * 100 / item.computed_effort);
   }
 
-  if (item.due || item.sprint_start || item.sprint_end || item.delta) {
+  if (item.sprint_start || item.sprint_end || item.delta) {
     let notes = `<ul>`;
-    if (item.due) {
-      notes += `<li>DUE: ${formatDate(item.due)}</li>`;
-    }
     if (item.sprint_start) {
       notes += `<li>START: ${item.sprint_start}</li>`;
     }
@@ -222,9 +219,8 @@ function updateItemForTeam(item, team) {
         const details = team.delta.updated[item.jira];
         if (details.diffs) {
           details.diffs.forEach((c) => {
-            //if (c.key === 'status' || c.key === 'completed' || c.key === 'sprint' || c.key === 'theme' || c.key === 'estimate') {
-              notes += `<li>${c.key.toUpperCase()}: ${c.old} &rarr; ${c.new}</li>`;
-            //}
+            // TODO - support custom formatter based attribute 'key' (e.g. Date/Time)
+            notes += `<li>${c.key.toUpperCase()}: ${c.old} &rarr; ${c.new}</li>`;
           });
         }
       }
@@ -432,12 +428,20 @@ function setTeam(team) {
   if (team.items) {
     el = document.getElementById("show_completed");
     el.classList.remove("disabled");
+    el = document.getElementById("show_inprogress");
+    el.classList.remove("disabled");
+    el = document.getElementById("show_ready");
+    el.classList.remove("disabled");
     el = document.getElementById("show_pending");
     el.classList.remove("disabled");
     el = document.getElementById("show_blocked");
     el.classList.remove("disabled");
   } else {
     el = document.getElementById("show_completed");
+    el.classList.add("disabled");
+    el = document.getElementById("show_inprogress");
+    el.classList.add("disabled");
+    el = document.getElementById("show_ready");
     el.classList.add("disabled");
     el = document.getElementById("show_pending");
     el.classList.add("disabled");
@@ -567,6 +571,32 @@ function updateSPDayRate(labelId, inputId, done) {
   renderItems();
 }
 
+function toValueList(v) {
+  let result = v;
+  if (v) {
+    v =  v.toUpperCase();
+    let list = v.split(',');
+    if (list.length > 0) {
+      result = list;
+    }
+  }
+  return result;
+}
+
+function valueIn(v, list) {
+  if (v == list) {
+    return true;
+  } else if (list instanceof Array) {
+    for (let i=0; i < list.length; i++) {
+      if (v == list[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+  return false;
+}
+
 function filterItems() {
   var items = _team.items;
   if (items) {
@@ -575,8 +605,8 @@ function filterItems() {
     if (_status || _assignee || filterKey) {
       //console.log(`filterItems() - status=${_status}, assignee=${_assignee}, filter=${filterKey}`);
       items = items.filter(function (row) {
-        return ((isEmpty(_status) || row["status"] === _status) &&
-          (isEmpty(_assignee) || row["assignee"] === _assignee) &&
+        return ((isEmpty(_status) || valueIn(row["status"], _status)) &&
+          (isEmpty(_assignee) || valueIn(row["assignee"], _assignee)) &&
           (isEmpty(filterKey) || Object.keys(row).some(function (key) {
             return String(row[key]).toLowerCase().indexOf(filterKey) > -1
           })));
@@ -639,8 +669,20 @@ function showCompleted(key) {
   refreshMap();
 }
 
+function showInprogress(key) {
+  _status = _status === "INPROGRESS" ? null : "INPROGRESS";
+  toggleSearchKey(key, "");
+  refreshMap();
+}
+
+function showReady(key) {
+  _status = _status === "READY" ? null : "READY";
+  toggleSearchKey(key, "");
+  refreshMap();
+}
+
 function showPending(key) {
-  _status = _status === "PENDING" ? null : "PENDING";
+  _status = Array.isArray(_status) ? null : toValueList("PENDING,BACKLOG");
   toggleSearchKey(key, "");
   refreshMap();
 }
@@ -669,16 +711,18 @@ function showNext() {
   const sprint = getNextSprint();
   const teamName = _team.name;
   //_team = EMPTY_TEAM; // Force ResetUI and refresh
-  loadTeamItems(teamName, sprint);
+  _refresh = true;
   _refreshMap = true;
+  loadTeamItems(teamName, sprint);
 }
 
 function showPrevious() {
   const sprint = getPreviousSprint();
   const teamName = _team.name;
   //_team = EMPTY_TEAM; // Force ResetUI and refresh
-  loadTeamItems(teamName, sprint);
+  _refresh = true;
   _refreshMap = true;
+  loadTeamItems(teamName, sprint);
 }
 
 function getNextSprint() {
@@ -935,14 +979,14 @@ function createDeltaDiv(item) {
     markup = "";
     if (item.delta) {
       markup +=
-      `<div class="col-auto" style="padding-top:4px">
+      `<div class="col-auto">
         <a tabindex="0" title="${item.jira ?? ""} ${item.delta.toUpperCase()}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="${ESC(item.computed_notes)}">
           <i class="material-icons row" style="opacity: 0.5;">${item.delta === "new" ? "add" : "emergency"}</i>
         </a>
       </div>`;
     } else {
       markup +=
-      `<div class="col-auto" style="padding-top:4px">
+      `<div class="col-auto">
         <a tabindex="0" title="${item.jira ?? ""} Notes" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="${ESC(item.computed_notes)}">
           <i class="material-icons row">event_note</i>
         </a>
@@ -991,7 +1035,19 @@ function createIssueLink(item, showDelta=false, description=null) {
     }
   }
   if (item.jira) {
-    markup += `<div class="col-auto">${createIssueAnchor(item)}</div>`;
+    markup += `<div class="col">${createIssueAnchor(item)}</div>`;
+  }
+  if (item.due) {
+    const due = new Date(item.due);
+    let icon = "event";
+    if (item.status !== "COMPLETED") {
+      if (due.getTime() < NOW.getTime()) {
+        icon = "alarm";
+      }  
+    } else {
+      icon = "check";
+    }
+    markup += `<div class="col-auto" title="Due: ${formatDate(due)}"><i class="material-icons row">${icon}</i></div>`;
   }
   if (description) {
     markup += `<div class="col-auto">${description}</div>`;

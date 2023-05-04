@@ -79,7 +79,7 @@
   </style>
 
   <link rel="icon" href="/public/favicon.ico">
-  <title id="title">Pippi v0.5</title>
+  <title id="title">Pippi v0.6</title>
 </head>
 
 <body oncontextmenu="return false;">
@@ -156,7 +156,15 @@
             title="Show Completed" data-bs-toggle="tooltip" data-bs-placement="bottom">
             <i class="material-icons row">done</i>
           </button>
-          <button id="show_pending" class="btn btn-warning mx-1 disabled" onclick="showPending('global_search')"
+          <button id="show_inprogress" class="btn btn-warning mx-1 disabled" onclick="showInprogress('global_search')"
+            title="Show Inprogress" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">hourglass_empty</i>
+          </button>
+          <button id="show_ready" class="btn btn-primary mx-1 disabled" onclick="showReady('global_search')"
+            title="Show Ready" data-bs-toggle="tooltip" data-bs-placement="bottom">
+            <i class="material-icons row">calendar_today</i>
+          </button>
+          <button id="show_pending" class="btn btn-secondary mx-1 disabled" onclick="showPending('global_search')"
             title="Show Pending" data-bs-toggle="tooltip" data-bs-placement="bottom">
             <i class="material-icons row">pending</i>
           </button>

@@ -1,5 +1,6 @@
 import env from "../utils/env.ts";
 import { join } from "../deps.ts";
+
 async function readJSONFromFile(fileName: string) {  
   try {
     const text = await Deno.readTextFile(fileName);
@@ -45,6 +46,22 @@ function valueEquals(v1: any, v2: any) {
   return false;
 }
 
+export function propagateDueDate(item: any, parent: any = null) {
+  if (item.children) {
+    item.children.forEach((child:any) => {
+      propagateDueDate(child, item);
+    });
+  }
+
+  if (parent && item.due && item.status !== "COMPLETED") {
+    //console.debug(`Item ${item.jira} due=${item.due}`);
+    if (!parent.due || (new Date(parent.due)).getTime() > (new Date(item.due)).getTime()) {
+      //console.debug(`Parent ${parent.jira} due inheriting from child item`);
+      parent.due = item.due;
+    }
+  }
+}
+
 async function computeDelta(json: any, teamName: string, teamDir: string) {
   const teamKeys = ["completed", "remaining"];
   const base: any = { added: {}, updated: {}, unchanged: {}, removed: {} };
@@ -85,8 +102,8 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
     if (item.children) {
       item.children.forEach((child:any) => {
         compareItem(child);
-      });  
-    }  
+      });
+    }
   }
 
   function mapItemsByJira(item: any) {
@@ -146,12 +163,14 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
       }
     });
 
+    /*
     console.debug("#".repeat(80));
     console.debug(base.updated);
     console.debug("+".repeat(80));
     console.debug(base.added);
     console.debug("-".repeat(80));
     console.debug(base.removed);
+    */
   }
 
   return base;
@@ -194,6 +213,13 @@ async function getTeamItems(teamName: string, sprint: string|null = null, delta:
       json.base[teamName] = entries.sort();
       if (delta) {
         json.delta = await computeDelta(json, teamName, teamDir);
+      }
+
+      // Recursively propagate any due dates from child to parent items
+      if (json.items) {
+        json.items.forEach((feat: any) => {
+          propagateDueDate(feat);
+        });  
       }
     }
   }
