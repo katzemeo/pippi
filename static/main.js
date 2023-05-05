@@ -32,6 +32,8 @@ var _sortKey = "";
 var _teamNameParam = null;
 var _statusParam = null;
 var _status = null;
+var _poParam = null;
+var _po = null;
 var _assigneeParam = null;
 var _assignee = null;
 var _filterKeyParam = null;
@@ -60,7 +62,11 @@ window.onload = function () {
   }
   if (url.searchParams.has("status")) {
     _statusParam = url.searchParams.get("status");
-    _status = toValueList(_statusParam);
+    _status = toValueList(_statusParam, true);
+  }
+  if (url.searchParams.has("po")) {
+    _poParam = url.searchParams.get("po");
+    _po = toValueList(_poParam);
   }
   if (url.searchParams.has("assignee")) {
     _assigneeParam = url.searchParams.get("assignee");
@@ -571,10 +577,12 @@ function updateSPDayRate(labelId, inputId, done) {
   renderItems();
 }
 
-function toValueList(v) {
+function toValueList(v, toUpperCase) {
   let result = v;
   if (v) {
-    v =  v.toUpperCase();
+    if (toUpperCase) {
+      v =  v.toUpperCase();
+    }
     let list = v.split(',');
     if (list.length > 0) {
       result = list;
@@ -601,12 +609,12 @@ function filterItems() {
   var items = _team.items;
   if (items) {
     var filterKey = _filterKey && _filterKey.toLowerCase();
-    var order = _sortOrders[_sortKey] || 1;  
-    if (_status || _assignee || filterKey) {
-      //console.log(`filterItems() - status=${_status}, assignee=${_assignee}, filter=${filterKey}`);
+    var order = _sortOrders[_sortKey] || 1;
+    if (_status || _po || filterKey) {
+      //console.log(`filterItems() - status=${_status}, assignee=${_po}, filter=${filterKey}`);
       items = items.filter(function (row) {
         return ((isEmpty(_status) || valueIn(row["status"], _status)) &&
-          (isEmpty(_assignee) || valueIn(row["assignee"], _assignee)) &&
+          (isEmpty(_po) || isEmpty(row["assignee"]) || valueIn(row["assignee"], _po)) &&
           (isEmpty(filterKey) || Object.keys(row).some(function (key) {
             return String(row[key]).toLowerCase().indexOf(filterKey) > -1
           })));
@@ -682,7 +690,7 @@ function showReady(key) {
 }
 
 function showPending(key) {
-  _status = Array.isArray(_status) ? null : toValueList("PENDING,BACKLOG");
+  _status = Array.isArray(_status) ? null : toValueList("PENDING,BACKLOG,N/A");
   toggleSearchKey(key, "");
   refreshMap();
 }
@@ -1307,7 +1315,9 @@ function showChildren(parentJira) {
   const label = document.getElementById("childrenItemsLabel");
   removeChildren(label);
 
-  label.innerHTML = createIssueLink(parent, true, `(${parent.t_shirt_size ?? ""}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`);
+  let remainingSP = `<div class="col text-end">Remaining: ${parent.remaining} ${parent.unit ?? "SP"}</div>`;
+  let headerContent = createIssueLink(parent, true, `(${parent.t_shirt_size ?? ""}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`);
+  label.innerHTML = `<div class="container mx-0"><div class="d-flex"><div class="col-auto">${headerContent}</div>${remainingSP}</div>`;
   const statusEl = document.getElementById("parentItemLabel");
   removeChildren(statusEl);
 
@@ -1453,15 +1463,14 @@ function filterChildrenItems() {
   const sortKey = _childrenSortKey;
   var order = _childrenSortOrder[sortKey] || 1;
   var items = _childrenItems;
-  if (filterKey) {
+
+  if (_assignee || filterKey) {
+    //console.log(`filterChildrenItems() - status=${_status}, assignee=${_assignee}, filter=${filterKey}`);
     items = items.filter(function (row) {
-      return Object.keys(row).some(function (key) {
-        return (
-          String(row[key])
-            .toLowerCase()
-            .indexOf(filterKey) > -1
-        );
-      });
+      return ((isEmpty(_assignee) || valueIn(row["assignee"], _assignee) || valueIn(row["assignee"], _po)) &&
+        (isEmpty(filterKey) || Object.keys(row).some(function (key) {
+          return String(row[key]).toLowerCase().indexOf(filterKey) > -1
+        })));
     });
   }
 

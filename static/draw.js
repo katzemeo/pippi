@@ -80,10 +80,7 @@ function _initDraw(width, height, map) {
         }
         let assigneeText = "";
         if (obj.item && obj.item.assignee) {
-          let assigneeName = obj.item.assignee;
-          if (_team.members && _team.members[assigneeName]) {
-            assigneeName = _team.members[assigneeName].name ?? assigneeName;
-          }
+          const assigneeName = lookupTeamMember(obj.item.assignee);
           assigneeText = " ["+ assigneeName +"]";
         }
         writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}] - "${obj.summary ?? ""}"${assigneeText}`);
@@ -354,18 +351,34 @@ function _renderChildrenItems(canvas, parentItem, parentObject) {
     }
   }
 
-  parentItem.children.forEach((child) => {
+  let items = parentItem.children;
+  if (_assignee) {
+    items = items.filter(function (row) {
+      return (isEmpty(_assignee) || isEmpty(row["assignee"]) || valueIn(row["assignee"], _assignee) || valueIn(row["assignee"], _po));
+    });
+  }
+
+  items.forEach((child) => {
     // Handle nested items (i.e. epics)
     if (child.children) {
       nextColRow(item, true);
-      child.children.sort(function (a, b) {
+
+      let children = child.children;
+      if (_assignee) {
+        children = children.filter(function (row) {
+          return (isEmpty(_assignee) || valueIn(row["assignee"], _assignee));
+        });
+      }
+
+      children.sort(function (a, b) {
         let result = compare(a, b, "status") * -1;
         if (result === 0) {
           result = compare(a, b, "story.estimate");
         }
         return result;
       });
-      child.children.forEach((story) => {
+
+      children.forEach((story) => {
         item = _createItem(story.jira, story.estimate, story.summary);
         item.item = story;
         item.parentItem = child;
