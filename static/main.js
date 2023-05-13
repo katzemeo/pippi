@@ -15,6 +15,7 @@ const PCT = function (value) { if (!isNaN(value)) { return _percentFormat(value)
 const EFF = function (value) { if (!isNaN(value)) { return _numFormat(value); } return ""; };
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "America/Toronto";
 const EMPTY_TEAM = {
+  name: MY_TEAM,
   sp_per_day_rate: null,
   completed: null,
   remaining: null,
@@ -30,6 +31,7 @@ var _SPDayRate = DEFAULT_SP_DAY_RATE;
 var _sortOrders = {};
 var _sortKey = "";
 var _teamNameParam = null;
+var _modeParam = null;
 var _statusParam = null;
 var _status = null;
 var _poParam = null;
@@ -60,17 +62,20 @@ window.onload = function () {
     _teamNameParam = url.searchParams.get("team");
     _teamName = _teamNameParam;
   }
+  if (url.searchParams.has("mode")) {
+    _modeParam = url.searchParams.get("mode");
+  }
   if (url.searchParams.has("status")) {
     _statusParam = url.searchParams.get("status");
-    _status = toValueList(_statusParam, true);
+    _status = toValueSet(_statusParam, true);
   }
   if (url.searchParams.has("po")) {
     _poParam = url.searchParams.get("po");
-    _po = toValueList(_poParam);
+    _po = toValueSet(_poParam);
   }
   if (url.searchParams.has("assignee")) {
     _assigneeParam = url.searchParams.get("assignee");
-    _assignee = toValueList(_assigneeParam);
+    _assignee = toValueSet(_assigneeParam);
   }
   if (url.searchParams.has("filter")) {
     _filterKeyParam = url.searchParams.get("filter");
@@ -89,6 +94,7 @@ window.onload = function () {
   }
 
   configureAutomaticSave();
+  configurePopupListener();
 
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
   tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -101,6 +107,10 @@ window.onload = function () {
       refreshMap();
     }
   });
+
+  if (_modeParam === "map") {
+    toggleItemMap();
+  }
 };
 
 var _modified = false;
@@ -183,8 +193,10 @@ function sortBy(key) {
 }
 
 function searchKey(key) {
-  var value = document.getElementById(key).value;
-  _filterKey = value;
+  if (key) {
+    var value = document.getElementById(key).value;
+    _filterKey = value;  
+  }
   renderItems();
   _refreshMap = true;
   updateCanvasSelection();
@@ -577,30 +589,28 @@ function updateSPDayRate(labelId, inputId, done) {
   renderItems();
 }
 
-function toValueList(v, toUpperCase) {
+function toValueSet(v, toUpperCase) {
   let result = v;
   if (v) {
     if (toUpperCase) {
-      v =  v.toUpperCase();
+      v = v.toUpperCase();
     }
-    let list = v.split(',');
-    if (list.length > 0) {
-      result = list;
+    let values = v.split(',');
+    if (values.length > 0) {
+      result = new Set(values);
+    } else {
+      result =  new Set();
+      result.add(v);
     }
   }
   return result;
 }
 
-function valueIn(v, list) {
-  if (v == list) {
+function valueIn(v, set) {
+  if (v === set) {
     return true;
-  } else if (list instanceof Array) {
-    for (let i=0; i < list.length; i++) {
-      if (v == list[i]) {
-        return true;
-      }
-    }
-    return false;
+  } else if (set instanceof Set) {
+    return set.has(v);
   }
   return false;
 }
@@ -673,41 +683,46 @@ function enableDisableNavigation() {
 
 function showCompleted(key) {
   _status = _status === "COMPLETED" ? null : "COMPLETED";
-  toggleSearchKey(key, "");
+  toggleSearchKey(key, "show_completed");
   refreshMap();
 }
 
 function showInprogress(key) {
   _status = _status === "INPROGRESS" ? null : "INPROGRESS";
-  toggleSearchKey(key, "");
+  toggleSearchKey(key, "show_inprogress");
   refreshMap();
 }
 
 function showReady(key) {
   _status = _status === "READY" ? null : "READY";
-  toggleSearchKey(key, "");
+  toggleSearchKey(key, "show_ready");
   refreshMap();
 }
 
 function showPending(key) {
-  _status = Array.isArray(_status) ? null : toValueList("PENDING,BACKLOG,N/A");
-  toggleSearchKey(key, "");
+  _status = (_status instanceof Set) ? null : toValueSet("PENDING,BACKLOG,N/A");
+  toggleSearchKey(key, "show_pending");
   refreshMap();
 }
 
 function showBlocked(key) {
   _status = _status === "BLOCKED" ? null : "BLOCKED";
-  toggleSearchKey(key, "");
+  toggleSearchKey(key, "show_blocked");
   refreshMap();
 }
 
-function toggleSearchKey(key, value) {
-  const el = document.getElementById(key);
-  if (el.value == value) {
-    el.value = "";
-  } else {
-    el.value = value;
-  }
+const _toggleButtons = ["show_completed", "show_inprogress", "show_completed", "show_ready", "show_pending", "show_blocked"];
+function toggleSearchKey(key, toggleId) {
+  let el = document.getElementById(key);
+  el.value = "";
+  _toggleButtons.forEach((buttonId) => {
+    el = document.getElementById(buttonId);
+    if (buttonId !== toggleId || !_status) {
+      el.classList.remove("active");
+    } else if (!el.classList.contains("active")) {
+      el.classList.add("active");
+    }
+  });
   searchKey(key);
 }
 
@@ -1150,6 +1165,8 @@ function renderItems() {
       }
 
       cell = renderCell(row, createIssueLink(item));
+      cell.setAttribute("data-type", "jira");
+      cell.setAttribute("data-value", item.jira);
 
       cell = renderCell(row, createSummaryLink(item));
       if (item.description) {
@@ -1202,6 +1219,7 @@ function renderItems() {
       }
       cell.title = noteTitle;
       cell.setAttribute("data-type", "status");
+      cell.setAttribute("data-value", item.status);
 
       if (item.computed_effort > 0) {
         cell = renderCell(row, `${PCT(item.computed_team_pct)}% (${effort} SP)`);
@@ -1216,6 +1234,7 @@ function renderItems() {
         cell.title = "Unassigned";
         item.computed_unassigned = "Unassigned";
       }
+      cell.setAttribute("data-type", "assignee");
 
       mytable.appendChild(row);
       n++;
@@ -1580,18 +1599,23 @@ function fitToCanvas() {
 
 var _canvasMode = false;
 function toggleItemMap() {
-  let canvasEl = document.getElementById("canvas-div");
-  let tableEl = document.getElementById("table-div");
+  const canvasEl = document.getElementById("canvas-div");
+  const tableEl = document.getElementById("table-div");
+  const toggleEl = document.getElementById("item_map");
   if (canvasEl.style.display) {
     _canvasMode = true;
     show(canvasEl, true);
     show(tableEl, false);
     refreshMap();
+    if (!toggleEl.classList.contains("active")) {
+      toggleEl.classList.add("active");
+    }
   } else {
     _canvasMode = false;
     show(canvasEl, false);
     show(tableEl, true);
     enableDisableNavigation();
+    toggleEl.classList.remove("active");
   }
   show(document.getElementById("upload"), !_canvasMode);
   show(document.getElementById("copy_to_clipboard"), !_canvasMode);
@@ -1600,18 +1624,24 @@ function toggleItemMap() {
 }
 
 var _fabricJSLoaded = false;
+var _fabricJSLoading = false;
 function showTeamMap(data=null, items=_items, hook=null) {
+  if (_fabricJSLoading) {
+    return;
+  }
   let callback = function() {
+    _fabricJSLoading = false;
+    _fabricJSLoaded = true;
     _showTeamMap(data, items, hook !== null);
     if (hook) {
       hook(_canvasMap);
     }
   };
   if (!_fabricJSLoaded) {
+    _fabricJSLoading = true;
     loadJSSync("/public/fabric.min.js");
     loadJSSync("/public/draw.js");
-    loadJSSync("/public/custom.js", callback);    
-    _fabricJSLoaded = true;
+    loadJSSync("/public/custom.js", callback);
   } else {
     callback();
   }

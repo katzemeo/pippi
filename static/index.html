@@ -27,7 +27,7 @@
 
     i.row {
       font-size: 1.1em;
-      color: #262626;
+      /*color: #262626;*/
       cursor: pointer;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
@@ -68,6 +68,11 @@
       padding-bottom: 0;
     }
 
+    .menuitem-padding {
+      padding-top: 5;
+      padding-bottom: 5;
+    }
+
     th {
       cursor: pointer;
       -webkit-user-select: none;
@@ -86,6 +91,11 @@
   <!-- Bootstrap Bundle with Popper -->
   <script src="/public/bootstrap.bundle.min.js"></script>
   <script src="/public/main.js"></script>
+  <script src="/public/popup.js"></script>
+
+  <!-- Popup menu (z-index below Bootstrap 5 modal, popover, tooltip) -->
+  <div class="list-group col-auto" id="context-menu" style="position: absolute; z-index: 1035; display: none;">
+  </div>
 
   <!-- Header -->
   <nav id="header" class="navbar sticky-top navbar-expand navbar-dark bg-dark">
@@ -174,7 +184,7 @@
           </button>
         </div>
 
-        <div class="d-flex">
+        <div class="d-flex" data-type="assignee">
           <span class="nav-item"><i class="material-icons navitem">search</i></span>
           <input class="form-control me-2" maxlength="20" type="search" placeholder="Search" aria-label="Search" id="global_search"
             onchange="searchKey('global_search')" onkeyup="searchKey('global_search')" onsearch="searchKey('global_search')">

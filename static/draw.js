@@ -158,63 +158,47 @@ function handleCanvasPopupMenu(canvas, menu, e) {
   e.preventDefault();
 
   removeChildren(menu);
-  if (type === "feat" || type === "item") {
-    buildTargetPopupMenu(target, menu);
-    menu.style.display = 'block';
-    menu.style.left = e.pageX+"px";
-    menu.style.top = e.pageY+"px";
-  } else {
-    menu.style.display = 'none';
+  let el = document.elementFromPoint(e.x, e.y);
+  if (el) {
+    // Navigate to parent element specifying data
+    while (el && !el.getAttribute('data-type')) {
+      el = el.parentElement;
+    }
   }
+
+  if (el && el.getAttribute('data-type') === "assignee") {
+    buildAssigneePopupMenu(menu);
+  } else {
+    buildCanvasPopupMenu(canvas, menu);
+  }
+  menu.style.display = 'block';
+  menu.style.left = e.pageX+"px";
+  menu.style.top = e.pageY+"px";
 
   return false;
 };
 
-function buildTargetPopupMenu(target, menu) {
+function buildCanvasPopupMenu(canvas, menu) {
   let mi = document.createElement("span");
   mi.className = "list-group-item list-group-item-secondary";
-  mi.innerHTML = `<h5 class="mb-1"><span class="text-decoration-underline">${target.id}</span> Status</h5>`;
+  mi.innerHTML = `<h5 class="mb-1"><span class="text-decoration-underline">${_team.name ?? _team.squad} Map</span></h5>`;
   menu.appendChild(mi);
 
-  const meta = { type: "enum", values: ["backlog", "pending", "ready", "blocked", "inprogress", "completed"], captions: { inprogress: "In Progress" } };
-  const value = target.status;
-  meta.values.forEach((v) => {
-    let caption = v;
-    let icon = "";
-    if (meta.captions) {
-      caption = meta.captions[v] ?? toCaptionFromIdentifier(v);
-    }
+  const className = "list-group-item list-group-item-action menuitem-padding";
 
-    const className = "list-group-item list-group-item-action";
-    if (v === "backlog") {
-      icon = "schedule";
-    } else if (v === "pending") {
-      icon = "pending";
-    } else if (v === "ready") {
-      icon = "calendar_today";
-    } else if (v === "blocked") {
-      icon = "block";
-    } else if (v === "inprogress") {
-      icon = "hourglass_empty";
-    } else if (v === "completed") {
-      icon = "check_circle";
-    } else {
-      console.log(`Unknown status value "${v}"`);
-    }
-
-    if (v !== value) {
-      mi = document.createElement("a");
-      mi.className = className;
-      mi.href = "#";
-      mi.setAttribute("onclick", `setObjectStatus("${target.id}", "${v}"); return false;`);
-    } else {
-      mi = document.createElement("span");
-      mi.className = "list-group-item active";
-    }
-    mi.innerHTML = `<i class="material-icons">${icon}</i> ${caption}`;
+  // Download Map
+  if (true) {
+    mi = document.createElement("a");
+    mi.className = className;
+    mi.href = "#";
+    mi.onclick = function() {
+      downloadImage(this, canvas, "json");
+    };
+    mi.innerHTML = `<i class="material-icons">download</i> Download as JSON...`;
     menu.appendChild(mi);
-  });
+  }
 }
+
 
 function findObjectById(itemId) {
   const objects = _canvasMap.getObjects();
