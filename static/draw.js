@@ -1,4 +1,28 @@
+_teamIcons = { };
+
+function _loadTeamIcons(members) {
+  Object.keys(members).forEach((id) => {
+    const m = members[id];
+    if (m.icon && !_teamIcons[m.id]) {
+      var image = new Image();
+      image.onload = function() {
+        _teamIcons[m.id] = image;
+      };
+      image.src = `/public/assets/${m.icon}.png`;
+      /*
+      fabric.Image.fromURL(`/public/assets/${m.icon}.png`, function(image) {
+        _teamIcons[m.id] = image;
+      });
+      */
+    }
+  });
+}
+
 function _initDraw(width, height, map) {
+  if (_team.members) {
+    _loadTeamIcons(_team.members);
+  }
+
   //console.log(`_initDraw(${width}, ${height})...`);
   var canvas = new fabric.Canvas('canvas', {
     width: width,

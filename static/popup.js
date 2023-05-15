@@ -120,9 +120,8 @@ function buildAssigneePopupMenu(menu) {
     const tm = _team.members[id];
     if (tm.role == "PO") {
       poMembers.push(tm);
-    } else {
-      members.push(tm);
     }
+    members.push(tm);
   });
 
   addMenuItem(menu, "Clear All", "clear", `clearAssigneeFilter(); return false;`, className);

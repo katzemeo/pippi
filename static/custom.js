@@ -121,10 +121,12 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
     }
     ctx.font = '8px Helvetica';
     ctx.fillText(`${this.summary}`, startX, this.height/2 - 4, this.width - size - 2);
-    if (_img_status[this.status]) {
-      ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
-    } else {
-      console.log(`Unknown status "${this.status}" in Feat._render(${this.id})`);
+    if (_canvasMap.getZoom() * this.height * this.scaleY >= 50) {
+      if (_img_status[this.status]) {
+        ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
+      } else {
+        console.log(`Unknown status "${this.status}" in Feat._render(${this.id})`);
+      }  
     }
 
     if (this.item && this.item.delta) {
@@ -252,26 +254,43 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
   },
 
   _render: function(ctx) {
+    const effHeight = _canvasMap.getZoom() * this.height * this.scaleY;
+    const details = (effHeight >= 40);
     const size = 24;
     this.callSuper('_render', ctx);
 
-    ctx.font = '20px Helvetica';
     ctx.fillStyle = '#000';
     const text = `${this.id ?? ""}`;
-    const startX = -this.width/2 + 3;
-    const startY = -12;
-    ctx.fillText(text, startX, startY);
-    //const textMeasurement = ctx.measureText(text);
-    //ctx.fillRect(startX, startY + 1, textMeasurement.width, 1);
+    const startX = -this.width/2 + (details ? 3 : 20);
+    const startY = details ? 5 : -25;
+
+    if (effHeight >= 40 && this.item.assignee) {
+      if (_teamIcons[this.item.assignee]) {
+        ctx.drawImage(_teamIcons[this.item.assignee], startX - 4, -this.height + 48, 32, 32);
+      } else {
+        ctx.font = '14px Helvetica';
+        ctx.fillText(lookupTeamMember(this.item.assignee, true), startX + 1, -this.height + 72);
+      }
+    }
+
+    if (details) {
+      ctx.font = '20px Helvetica';
+      ctx.fillText(text, startX, startY);
+      //const textMeasurement = ctx.measureText(text);
+      //ctx.fillRect(startX, startY + 1, textMeasurement.width, 1);
+    }
+
     ctx.font = '32px Helvetica';
     if (this.sp >= 0) {
       ctx.fillText(`${this.sp} SP`, startX, startY + 40);
     }
-    //ctx.fillText(`${this.summary}`, startX, this.height/2 - 4);
-    if (_img_status[this.status]) {
-      ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
-    } else {
-      console.log(`Unknown status "${this.status}" in Item._render(${this.id})`);
+
+    if (details) {
+      if (_img_status[this.status]) {
+        ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
+      } else {
+        console.log(`Unknown status "${this.status}" in Item._render(${this.id})`);
+      }
     }
 
     if (this.item && this.item.delta) {

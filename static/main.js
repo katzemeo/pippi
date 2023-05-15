@@ -255,7 +255,10 @@ function processTeamMembers(data, team) {
     }
     data.members.forEach((member) => {
       team.members[member.id] = member;
-    });  
+      if (!member.role) {
+        member.role = "TM";
+      }
+    });
   }
 }
 
@@ -1098,11 +1101,17 @@ const GREEN = "color:#00B74A";
 const AMBER = "color:#FFA900";
 const BLUE = "color:#0D6EFD";
 
-function lookupTeamMember(memberID) {
+function lookupTeamMember(memberID, short=false) {
   let memberName = memberID;
   if (_team.members && memberID) {
     const member = _team.members[memberID];
-    memberName = member ? `${member.name} (${memberID})` : memberID;  
+    if (member) {
+      if (short) {
+        memberName = member.name;
+      } else {
+        memberName = `${member.name} (${memberID})`;
+      }
+    }
   }
   return memberName ?? "(unknown)";
 }
@@ -1300,7 +1309,7 @@ var _childrenFilterKey = null;
 var _childrenSortKey = null;
 var _childrenSortOrder = {};
 
-function findItemByJira(jira, items=_items) {
+function findItemByJira(jira, items=_team.items) {
   if (items) {
     for (let i=0; i<items.length; i++) {
       if (items[i].jira === jira) {
@@ -1334,7 +1343,7 @@ function showChildren(parentJira) {
   const label = document.getElementById("childrenItemsLabel");
   removeChildren(label);
 
-  let remainingSP = `<div class="col text-end">Remaining: ${parent.remaining} ${parent.unit ?? "SP"}</div>`;
+  let remainingSP = `<div class="col text-end">Remaining: ${parent.remaining ?? "Unknown"} ${parent.unit ?? "SP"}</div>`;
   let headerContent = createIssueLink(parent, true, `(${parent.t_shirt_size ?? ""}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`);
   label.innerHTML = `<div class="container mx-0"><div class="d-flex"><div class="col-auto">${headerContent}</div>${remainingSP}</div>`;
   const statusEl = document.getElementById("parentItemLabel");
@@ -1424,12 +1433,7 @@ function renderChildrenItems() {
     }
 
     if (item.assignee) {
-      let assigneeName = item.assignee;
-      if (_team.members) {
-        const assignee = _team.members[item.assignee];
-        assigneeName = assignee ? assignee.name : item.assignee;  
-      }
-
+      let assigneeName = lookupTeamMember(item.assignee, true);
       cell = renderCell(row, assigneeName);
       cell.title = "Assignee: " + item.assignee;
       item.computed_unassigned = assigneeName;
