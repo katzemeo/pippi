@@ -733,22 +733,20 @@ function loadMyTeam() {
   loadTeamItems("MY_TEAM");
 }
 
+function showSprint(sprint, nextFlag=true) {
+  const teamName = _team.name;
+  loadTeamItems(teamName, sprint);
+  _refreshMap = true;
+}
+
 function showNext() {
   const sprint = getNextSprint();
-  const teamName = _team.name;
-  //_team = EMPTY_TEAM; // Force ResetUI and refresh
-  _refresh = true;
-  _refreshMap = true;
-  loadTeamItems(teamName, sprint);
+  showSprint(sprint, true);
 }
 
 function showPrevious() {
   const sprint = getPreviousSprint();
-  const teamName = _team.name;
-  //_team = EMPTY_TEAM; // Force ResetUI and refresh
-  _refresh = true;
-  _refreshMap = true;
-  loadTeamItems(teamName, sprint);
+  showSprint(sprint, false);
 }
 
 function getNextSprint() {

@@ -118,7 +118,7 @@ function buildAssigneePopupMenu(menu) {
   const members = [];
   Object.keys(_team.members).forEach((id) => {
     const tm = _team.members[id];
-    if (tm.role == "PO") {
+    if (tm.role === "PO") {
       poMembers.push(tm);
     }
     members.push(tm);
@@ -152,7 +152,7 @@ function buildAssigneePopupMenu(menu) {
     let onClick = `filterByAssignee("${m.id}")`;
     let caption = `${m.name}/${m.id} (${m.role})`;
     let check = valueIn(m.id, _assignee);
-    let li = `<li><a class="dropdown-item" href='javascript:${onClick}'>${caption} ${check ? '<i class="material-icons">check</i>':''}</a></li>`;
+    let li = `<li><a class="dropdown-item" href='javascript:${onClick}'>${caption} ${check ? ' <i class="material-icons">check</i>':''}</a></li>`;
     itemsHTML += li;
   });
   addDropdownMenu(menu, "Team Members", itemsHTML, "engineering");

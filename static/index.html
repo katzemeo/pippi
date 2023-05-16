@@ -81,6 +81,13 @@
       -ms-user-select: none;
       user-select: none;
     }
+
+    @media all and (min-width: 992px) {
+      .nav-item .dropdown-menu{ display: none; }
+      /*.nav-item:hover .nav-link{   }*/
+      .nav-item:hover .dropdown-menu{ display: block; left: -50px; }
+      .nav-item .dropdown-menu{ margin-top:0; }
+    }
   </style>
 
   <link rel="icon" href="/public/favicon.ico">
