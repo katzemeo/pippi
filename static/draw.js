@@ -9,11 +9,6 @@ function _loadTeamIcons(members) {
         _teamIcons[m.id] = image;
       };
       image.src = `/public/assets/${m.icon}.png`;
-      /*
-      fabric.Image.fromURL(`/public/assets/${m.icon}.png`, function(image) {
-        _teamIcons[m.id] = image;
-      });
-      */
     }
   });
 }
@@ -107,7 +102,11 @@ function _initDraw(width, height, map) {
           const assigneeName = lookupTeamMember(obj.item.assignee);
           assigneeText = " ["+ assigneeName +"]";
         }
-        writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}] - "${obj.summary ?? ""}"${assigneeText}`);
+        let progress = "";
+        if (obj.item && obj.item.progress) {
+          progress = ` ${PCT(obj.item.progress)}%`;
+        }
+        writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}${progress}] - "${obj.summary ?? ""}"${assigneeText}`);
       }
 
       if ((obj.parentItem) && !_tooltipGroup) {
@@ -182,18 +181,22 @@ function handleCanvasPopupMenu(canvas, menu, e) {
   e.preventDefault();
 
   removeChildren(menu);
-  let el = document.elementFromPoint(e.x, e.y);
-  if (el) {
-    // Navigate to parent element specifying data
-    while (el && !el.getAttribute('data-type')) {
-      el = el.parentElement;
-    }
-  }
-
-  if (el && el.getAttribute('data-type') === "assignee") {
-    buildAssigneePopupMenu(menu);
+  if (type === "feat" || type === "item") {
+    buildTargetPopupMenu(target, menu);
   } else {
-    buildCanvasPopupMenu(canvas, menu);
+    let el = document.elementFromPoint(e.x, e.y);
+    if (el) {
+      // Navigate to parent element specifying data
+      while (el && !el.getAttribute('data-type')) {
+        el = el.parentElement;
+      }
+    }
+
+    if (el && el.getAttribute('data-type') === "assignee") {
+      buildAssigneePopupMenu(menu);
+    } else {
+      buildCanvasPopupMenu(canvas, menu);
+    }
   }
   menu.style.display = 'block';
   menu.style.left = e.pageX+"px";
@@ -223,6 +226,35 @@ function buildCanvasPopupMenu(canvas, menu) {
   }
 }
 
+function buildTargetPopupMenu(target, menu) {
+  let mi = document.createElement("span");
+  mi.className = "list-group-item list-group-item-secondary";
+  mi.innerHTML = `<h5 class="mb-1"><span class="text-decoration-underline">${target.id} Item</span></h5>`;
+  menu.appendChild(mi);
+
+  const className = "list-group-item list-group-item-action menuitem-padding";
+
+  // Show item children
+  if (target.item && target.item.children) {
+    mi = document.createElement("a");
+    mi.className = className;
+    mi.href = "#";
+    mi.setAttribute("onclick", `showChildren("${target.id}"); return false;`);
+    mi.innerHTML = `<i class="material-icons">table_rows</i> Show Children...`;
+    menu.appendChild(mi);
+  }
+
+   // Open item external
+  if (target.item && ISSUE_WEBSITE_URL) {
+    const item = target.item;
+    mi = document.createElement("a");
+    mi.className = className;
+    mi.href = `${ISSUE_WEBSITE_URL}${item.jira}`;
+    mi.setAttribute("target", "item_jira");
+    mi.innerHTML = `<i class="material-icons">open_in_browser</i> ${item.jira}...`;
+    menu.appendChild(mi);
+  }
+}
 
 function findObjectById(itemId) {
   const objects = _canvasMap.getObjects();

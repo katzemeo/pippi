@@ -262,6 +262,43 @@ function processTeamMembers(data, team) {
   }
 }
 
+function computeTotalSP(item, sortChildren = true) {
+  if (item.children) {
+    let computed_sp = 0;
+    let completed = 0;
+    let remaining = 0;
+    item.children.forEach((child) => {
+      computed_sp += computeTotalSP(child);
+      completed += child.completed ?? 0;
+      remaining += child.remaining ?? 0;
+    });
+    item.computed_sp = computed_sp;
+    item.completed = completed;
+    item.remaining = remaining;
+
+    if (item.status === "COMPLETED" && item.remaining > 0) {
+      console.warn(`computeTotalSP() - ${item.jira} is COMPLETED but remaining SP is ${item.remaining}!`);
+    }
+  
+    if (sortChildren) {
+      item.children.sort(function(a, b) {
+        return compare(a, b, "jira");
+      });
+    }
+    return computed_sp;
+  }
+
+  const sp = item.estimate ?? 0;
+  if (item.status === "COMPLETED") {
+    item.completed = sp;
+    item.remaining = 0;
+  } else {
+    item.remaining = sp; // Assume full estimate SP remains until item is completed!
+  }
+
+  return sp;
+}
+
 function processTeamItems(data) {
   let team = _teams[data.name];
   if (!team) {
@@ -280,6 +317,11 @@ function processTeamItems(data) {
   team.sprint = data.sprint ?? team.sprint;
   team.delta = data.delta ?? team.delta;
   team.date = data.date ?? team.date;
+  if (data.recompute && team.items) {
+    team.items.forEach((feat) => {
+      computeTotalSP(feat);
+    });
+  }
   processTeamMembers(data, team);
 
   if (!_teams[team.name] || team.squad !== _teams[team.name].squad) {
@@ -735,6 +777,7 @@ function loadMyTeam() {
 
 function showSprint(sprint, nextFlag=true) {
   const teamName = _team.name;
+  _refresh = true;
   loadTeamItems(teamName, sprint);
   _refreshMap = true;
 }
@@ -1204,7 +1247,11 @@ function renderItems() {
         cell = renderCell(row, "");
       }
 
-      cell = renderCell(row, `${EFF(item.computed_remaining)} SP`);
+      if (item.computed_remaining) {
+        cell = renderCell(row, `${EFF(item.computed_remaining)} SP`);
+      } else {
+        cell = renderCell(row, "");
+      }
 
       let note = "";
       const effort = EFF(convertToSP(item.computed_effort, item.unit));

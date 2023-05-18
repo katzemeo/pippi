@@ -114,14 +114,21 @@ function buildAssigneePopupMenu(menu) {
     return;
   }
 
+  const initPOSet = !_po;
   const poMembers = [];
   const members = [];
+  if (initPOSet) {
+    _po = new Set();
+  }
   Object.keys(_team.members).forEach((id) => {
-    const tm = _team.members[id];
-    if (tm.role === "PO") {
-      poMembers.push(tm);
+    const m = _team.members[id];
+    if (m.role === "PO") {
+      poMembers.push(m);
+      if (initPOSet) {
+        _po.add(m.id);
+      }
     }
-    members.push(tm);
+    members.push(m);
   });
 
   addMenuItem(menu, "Clear All", "clear", `clearAssigneeFilter(); return false;`, className);
@@ -148,14 +155,34 @@ function buildAssigneePopupMenu(menu) {
   members.sort(function (a, b) {
     return compare(a, b, "name");
   });
-  members.forEach((m) => {
-    let onClick = `filterByAssignee("${m.id}")`;
-    let caption = `${m.name}/${m.id} (${m.role})`;
-    let check = valueIn(m.id, _assignee);
-    let li = `<li><a class="dropdown-item" href='javascript:${onClick}'>${caption} ${check ? ' <i class="material-icons">check</i>':''}</a></li>`;
-    itemsHTML += li;
-  });
-  addDropdownMenu(menu, "Team Members", itemsHTML, "engineering");
+
+  if (members.length <= 10) {
+    members.forEach((m) => {
+      let onClick = `filterByAssignee("${m.id}")`;
+      let caption = `${m.name}/${m.id} (${m.role})`;
+      let check = valueIn(m.id, _assignee);
+      let li = `<li><a class="dropdown-item" href='javascript:${onClick}'>${caption} ${check ? ' <i class="material-icons">check</i>':''}</a></li>`;
+      itemsHTML += li;
+    });
+    addDropdownMenu(menu, "Team Members", itemsHTML, "engineering");
+  } else {
+    addMenuItem(menu, "Team Members", "engineering", null, "list-group-item menuitem-padding");
+    while (members.length > 0) {
+      let count = 0;
+      let caption = `${members[0].name} ...`;
+      itemsHTML = "";
+      while (count < 10 && members.length > 0) {
+        let m = members.shift();
+        let onClick = `filterByAssignee("${m.id}")`;
+        let caption = `${m.name}/${m.id} (${m.role})`;
+        let check = valueIn(m.id, _assignee);
+        let li = `<li><a class="dropdown-item" href='javascript:${onClick}'>${caption} ${check ? ' <i class="material-icons">check</i>':''}</a></li>`;
+        itemsHTML += li;
+        count++;
+      }
+      addDropdownMenu(menu, caption, itemsHTML, "engineering");
+    }
+  }
 }
 
 function filterByPO(assigneeId) {

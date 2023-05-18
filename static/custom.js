@@ -103,6 +103,10 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
   },
 
   _render: function(ctx) {
+    if (!_canvasMap) {
+      return;
+    }
+
     const size = 18;
     this.callSuper('_render', ctx);
 
@@ -254,6 +258,9 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
   },
 
   _render: function(ctx) {
+    if (!_canvasMap) {
+      return;
+    }
     const effHeight = _canvasMap.getZoom() * this.height * this.scaleY;
     const details = (effHeight >= 40);
     const size = 24;
@@ -262,11 +269,11 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
     ctx.fillStyle = '#000';
     const text = `${this.id ?? ""}`;
     const startX = -this.width/2 + (details ? 3 : 20);
-    const startY = details ? 5 : -25;
+    const startY = details ? 6 : -25;
 
-    if (effHeight >= 40 && this.item.assignee) {
+    if (effHeight >= 40 && this.item && this.item.assignee) {
       if (_teamIcons[this.item.assignee]) {
-        ctx.drawImage(_teamIcons[this.item.assignee], startX - 4, -this.height + 48, 32, 32);
+        ctx.drawImage(_teamIcons[this.item.assignee], startX - 4, -this.height + 49, 32, 32);
       } else {
         ctx.font = '14px Helvetica';
         ctx.fillText(lookupTeamMember(this.item.assignee, true), startX + 1, -this.height + 72);
