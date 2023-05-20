@@ -315,7 +315,7 @@ function processTeamItems(data) {
   team.capacity = data.capacity ?? team.capacity;
   team.base = data.base ?? team.base;
   team.sprint = data.sprint ?? team.sprint;
-  team.delta = data.delta ?? team.delta;
+  team.delta = data.delta;
   team.date = data.date ?? team.date;
   if (data.recompute && team.items) {
     team.items.forEach((feat) => {
@@ -1389,7 +1389,7 @@ function showChildren(parentJira) {
   removeChildren(label);
 
   let remainingSP = `<div class="col text-end">Remaining: ${parent.remaining ?? "Unknown"} ${parent.unit ?? "SP"}</div>`;
-  let headerContent = createIssueLink(parent, true, `(${parent.t_shirt_size ?? ""}: ${parent.computed_effort} ${parent.unit ?? "SP"}) - ${parent.summary}`);
+  let headerContent = createIssueLink(parent, true, `(${parent.t_shirt_size ?? ""}: ${parent.computed_effort ?? ""} ${parent.unit ?? "SP"}) - ${parent.summary}`);
   label.innerHTML = `<div class="container mx-0"><div class="d-flex"><div class="col-auto">${headerContent}</div>${remainingSP}</div>`;
   const statusEl = document.getElementById("parentItemLabel");
   removeChildren(statusEl);

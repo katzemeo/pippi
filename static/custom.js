@@ -133,8 +133,8 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
       }  
     }
 
-    if (this.item && this.item.delta) {
-      const delta = this.item.delta;
+    if (this.myitem && this.myitem.delta) {
+      const delta = this.myitem.delta;
       ctx.save();
       ctx.globalAlpha = 0.5;
       if (delta === "new") {
@@ -271,12 +271,12 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
     const startX = -this.width/2 + (details ? 3 : 20);
     const startY = details ? 6 : -25;
 
-    if (effHeight >= 40 && this.item && this.item.assignee) {
-      if (_teamIcons[this.item.assignee]) {
-        ctx.drawImage(_teamIcons[this.item.assignee], startX - 4, -this.height + 49, 32, 32);
+    if (effHeight >= 40 && this.myitem && this.myitem.assignee) {
+      if (_teamIcons[this.myitem.assignee]) {
+        ctx.drawImage(_teamIcons[this.myitem.assignee], startX - 4, -this.height + 49, 32, 32);
       } else {
         ctx.font = '14px Helvetica';
-        ctx.fillText(lookupTeamMember(this.item.assignee, true), startX + 1, -this.height + 72);
+        ctx.fillText(lookupTeamMember(this.myitem.assignee, true), startX + 1, -this.height + 72);
       }
     }
 
@@ -300,8 +300,8 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
       }
     }
 
-    if (this.item && this.item.delta) {
-      const delta = this.item.delta;
+    if (this.myitem && this.myitem.delta) {
+      const delta = this.myitem.delta;
       ctx.save();
       ctx.globalAlpha = 0.7;
       if (delta === "new") {

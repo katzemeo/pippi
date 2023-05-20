@@ -89,7 +89,7 @@ function _initDraw(width, height, map) {
   let _targetURL = null;
   let _tooltipGroup = null;
   canvas.on('mouse:over', function(opt) {
-    if (opt.target && !_targetURL) {
+    if (opt.target && opt.target.type !== "group" && !_targetURL) {
       const obj = opt.target;
       if (obj.url) {
         _targetURL = obj.url;
@@ -98,26 +98,30 @@ function _initDraw(width, height, map) {
           _targetURL = `${ISSUE_WEBSITE_URL}${obj.id}`;
         }
         let assigneeText = "";
-        if (obj.item && obj.item.assignee) {
-          const assigneeName = lookupTeamMember(obj.item.assignee);
+        if (obj.myitem && obj.myitem.assignee) {
+          const assigneeName = lookupTeamMember(obj.myitem.assignee);
           assigneeText = " ["+ assigneeName +"]";
         }
         let progress = "";
-        if (obj.item && obj.item.progress) {
-          progress = ` ${PCT(obj.item.progress)}%`;
+        if (obj.myitem && obj.myitem.progress) {
+          progress = ` ${PCT(obj.myitem.progress)}%`;
         }
         writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}${progress}] - "${obj.summary ?? ""}"${assigneeText}`);
       }
 
-      if ((obj.parentItem) && !_tooltipGroup) {
-        //const tooltip = `${obj.item.jira}: ${obj.item.summary}`;
-        const tooltip = `${obj.parentItem.jira}: ${obj.parentItem.summary}`;
+      if (obj.myitem && !_tooltipGroup || _tooltipGroup.myitem != obj.myitem) {
+        if (_tooltipGroup) {
+          canvas.remove(_tooltipGroup);
+        }
+        //const tooltip = `${obj.myitem.jira}: ${obj.myitem.summary}`;
+        tooltip = obj.myitem.summary;
         const text = new fabric.Text(tooltip, {fontSize: 14, fontFamily: 'Helvetica', textAlign: 'left', top: 0, left: 5});
         const rect = new fabric.Rect({top: 0, left: 0, width: text.width + 10, height: 16, fill: 'rgba(194, 64, 64, 0.9)', rx: 4, ry: 4, transparentCorners: true});
         let left = obj.parentObject ? obj.parentObject.left : obj.left;
         _tooltipGroup = new fabric.Group([rect, text], {
           left: left, top: obj.top - rect.height - 1
         });
+        _tooltipGroup.myitem = obj.myitem;
         canvas.add(_tooltipGroup);
         canvas.requestRenderAll();
       }
@@ -181,7 +185,7 @@ function handleCanvasPopupMenu(canvas, menu, e) {
   e.preventDefault();
 
   removeChildren(menu);
-  if (type === "feat" || type === "item") {
+  if (type === "feat" || type === "epic" || type === "item") {
     buildTargetPopupMenu(target, menu);
   } else {
     let el = document.elementFromPoint(e.x, e.y);
@@ -235,7 +239,7 @@ function buildTargetPopupMenu(target, menu) {
   const className = "list-group-item list-group-item-action menuitem-padding";
 
   // Show item children
-  if (target.item && target.item.children) {
+  if (target.myitem && target.myitem.children) {
     mi = document.createElement("a");
     mi.className = className;
     mi.href = "#";
@@ -245,8 +249,8 @@ function buildTargetPopupMenu(target, menu) {
   }
 
    // Open item external
-  if (target.item && ISSUE_WEBSITE_URL) {
-    const item = target.item;
+  if (target.myitem && ISSUE_WEBSITE_URL) {
+    const item = target.myitem;
     mi = document.createElement("a");
     mi.className = className;
     mi.href = `${ISSUE_WEBSITE_URL}${item.jira}`;
@@ -334,6 +338,23 @@ function calcFeatSize(sp) {
   return 140;
 }
 
+function _getStatusStroke(status) {
+  if (status === "backlog") {
+    return "#000000";
+  } else if (status === "pending") {
+    return "#B2A515";
+  } else if (status === "ready") {
+    return "#06168E";
+  } else if (status === "blocked") {
+    return "#C16767";
+  } else if (status === "inprogress") {
+    return "#EBDA24";
+  } else if (status === "completed") {
+    return "#01740F";
+  }
+  return "#000000";
+}
+
 function _renderItemsCanvas(canvas, items) {
   let left = 50;
   let top = 50;
@@ -348,25 +369,30 @@ function _renderItemsCanvas(canvas, items) {
 
   items.forEach((item) => {
     const effort = EFF(convertToSP(item.computed_effort, item.unit));
-    let feat = _createFeat(item.jira, effort, item.summary);
-    feat.item = item;
-    feat.estimate = item.estimate;
-    feat.set({left: left, top: top, width: calcFeatSize(item.estimate ?? effort), status: item.status.toLowerCase()});
-    canvas.add(feat);
+    let obj;
+    if (item.type === "FEAT") {
+      obj = _createFeat(item.jira, effort, item.summary);
+    } else {
+      obj = _createItem(item.jira, effort, item.summary);
+    }
+    obj.myitem = item;
+    obj.estimate = item.estimate;
+    obj.set({left: left, top: top, width: calcFeatSize(item.estimate ?? effort), status: item.status.toLowerCase()});
+    canvas.add(obj);
     if (item.children) {
-      const childrenTop = _renderChildrenItems(canvas, item, feat);
-      if (childrenTop > feat.top + feat.height * feat.scaleY) {
-        feat.set({height: (childrenTop - top + feat.height - 50) / feat.scaleY});
+      const childrenTop = _renderChildrenItems(canvas, item, obj);
+      if (childrenTop > obj.top + obj.height * obj.scaleY) {
+        obj.set({height: (childrenTop - top + obj.height - 50) / obj.scaleY});
       }
     }
-    if (feat.height > rowHeight) {
-      rowHeight = feat.height;
+    if (obj.height > rowHeight) {
+      rowHeight = obj.height;
     }
 
-    left += feat.width * feat.scaleX + 50;
-    if (left > canvas.width * feat.scaleX * ratio) {
+    left += obj.width * obj.scaleX + 50;
+    if (left > canvas.width * obj.scaleX * ratio) {
       left = 50;
-      top += rowHeight * feat.scaleY + 50;
+      top += rowHeight * obj.scaleY + 50;
       rowHeight = 0;
     }
   });
@@ -402,6 +428,11 @@ function _renderChildrenItems(canvas, parentItem, parentObject) {
     // Handle nested items (i.e. epics)
     if (child.children) {
       nextColRow(item, true);
+      let x = left - 8;
+      let y = top - 8;
+      let width = 0;
+      let height = 0;
+      let index = canvas.size();
 
       let children = child.children;
       if (_assignee) {
@@ -413,23 +444,43 @@ function _renderChildrenItems(canvas, parentItem, parentObject) {
       children.sort(function (a, b) {
         let result = compare(a, b, "status") * -1;
         if (result === 0) {
-          result = compare(a, b, "story.estimate");
+          result = compare(a, b, "estimate");
+        }
+        if (result === 0) {
+          result = compare(a, b, "jira");
         }
         return result;
       });
 
       children.forEach((story) => {
         item = _createItem(story.jira, story.estimate, story.summary);
-        item.item = story;
+        item.myitem = story;
         item.parentItem = child;
-        item.parentObject = parentObject;
         item.set({left: left, top: top, status: story.status.toLowerCase()});
         canvas.add(item);
+        width = Math.max(width, item.left + item.width - x);
+        height = item.top + item.height - y;
         nextColRow(item);
       });
+
+      if (width > 0) {
+        const epicRect = new fabric.Rect();
+        epicRect.type = child.type.toLowerCase();
+        epicRect.summary = child.summary;
+        epicRect.id = child.jira;
+        epicRect.sp = child.estimate;
+        epicRect.status = child.status.toLowerCase();
+        epicRect.myitem = child;
+        epicRect.parentItem = parentItem;
+        epicRect.set({
+          left: x, top: y, width: width + 8, height: height + 8, rx: 10, ry: 10, fill: null,
+            stroke: _getStatusStroke(epicRect.status), strokeDashArray: [5, 5], strokeWidth: 2, opacity: 1, padding: 0
+        });
+        canvas.insertAt(epicRect, index);
+      }
     } else {
       item = _createItem(child.jira, child.estimate, child.summary);
-      item.item = child;
+      item.myitem = child;
       item.parentItem = parentItem;
       item.parentObject = parentObject;      
       item.set({left: left, top: top, status: child.status.toLowerCase()});
