@@ -668,7 +668,7 @@ function filterItems() {
     if (_status || _po || filterKey) {
       //console.log(`filterItems() - status=${_status}, assignee=${_po}, filter=${filterKey}`);
       items = items.filter(function (row) {
-        return ((isEmpty(_status) || valueIn(row["status"], _status)) &&
+        return ((isEmpty(_status) || valueIn(row["status"], _status) || (_status === "BLOCKED" && isBlocked(row))) &&
           (isEmpty(_po) || isEmpty(row["assignee"]) || valueIn(row["assignee"], _po)) &&
           (isEmpty(filterKey) || Object.keys(row).some(function (key) {
             return String(row[key]).toLowerCase().indexOf(filterKey) > -1
@@ -754,6 +754,19 @@ function showBlocked(key) {
   _status = _status === "BLOCKED" ? null : "BLOCKED";
   toggleSearchKey(key, "show_blocked");
   refreshMap();
+}
+
+function isBlocked(item) {
+  if (item.status === "BLOCKED") {
+    return true;
+  } else if (item.children) {
+    for (let i=0; i<item.children.length; i++) {
+      if (isBlocked(item.children[i])) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 const _toggleButtons = ["show_completed", "show_inprogress", "show_completed", "show_ready", "show_pending", "show_blocked"];
