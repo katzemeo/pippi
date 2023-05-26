@@ -31,6 +31,7 @@ var _SPDayRate = DEFAULT_SP_DAY_RATE;
 var _sortOrders = {};
 var _sortKey = "";
 var _teamNameParam = null;
+var _sprintParam = null;
 var _modeParam = null;
 var _statusParam = null;
 var _status = null;
@@ -45,6 +46,7 @@ var _items = [];
 var _toggleEditSPDayRate = false;
 var _refresh = true;
 var _userInfo = null;
+var _ctrl = false;
 
 function isEmpty(value) {
   return !value || ((typeof value) === "string" &&  value.trim() === "");
@@ -107,6 +109,19 @@ window.onload = function () {
       refreshMap();
     }
   });
+
+  document.onkeydown = function (e) {
+    if (e.key === "Control") {
+      _ctrl = true;
+      e.preventDefault();
+    }
+  };
+  document.onkeyup = function (e) {
+    if (e.key === "Control") {
+      _ctrl = false;
+      e.preventDefault();
+    }
+  };
 
   if (_modeParam === "map") {
     toggleItemMap();
@@ -785,7 +800,12 @@ function toggleSearchKey(key, toggleId) {
 }
 
 function loadMyTeam() {
-  loadTeamItems("MY_TEAM");
+  let sprint = null;
+  const url = new URL(window.location.href);
+  if (url.searchParams.has("sprint")) {
+    sprint = url.searchParams.get("sprint");
+  }
+  loadTeamItems(_teamName ?? "MY_TEAM", sprint);
 }
 
 function showSprint(sprint, nextFlag=true) {

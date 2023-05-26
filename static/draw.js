@@ -113,10 +113,18 @@ function _initDraw(width, height, map) {
         if (_tooltipGroup) {
           canvas.remove(_tooltipGroup);
         }
+
+        let fontSize = 24 - Math.round(5*canvas.getZoom());
+        if (fontSize > 18) {
+          fontSize = 18;
+        } else if (fontSize < 8) {
+          fontSize = 8;
+        }
+
         //const tooltip = `${obj.myitem.jira}: ${obj.myitem.summary}`;
         tooltip = obj.myitem.summary;
-        const text = new fabric.Text(tooltip, {fontSize: 14, fontFamily: 'Helvetica', textAlign: 'left', top: 0, left: 5});
-        const rect = new fabric.Rect({top: 0, left: 0, width: text.width + 10, height: 16, fill: 'rgba(194, 64, 64, 0.9)', rx: 4, ry: 4, transparentCorners: true});
+        const text = new fabric.Text(tooltip, {fontSize: fontSize, fontFamily: 'Helvetica', textAlign: 'left', top: 0, left: 5});
+        const rect = new fabric.Rect({top: 0, left: 0, width: text.width + 10, height: fontSize+2, fill: 'rgba(194, 64, 64, 0.9)', rx: 4, ry: 4, transparentCorners: true});
         let left = obj.parentObject ? obj.parentObject.left : obj.left;
         _tooltipGroup = new fabric.Group([rect, text], {
           left: left, top: obj.top - rect.height - 1
@@ -288,7 +296,9 @@ function fixZoom(zoom) {
 }
 
 function updateZoomValues(canvas) {
-  _canvasMap.viewportTransform[4] = canvas.viewportTransform[5] = 0;
+  canvas.viewportTransform[4] = 0;
+  canvas.viewportTransform[5] = 0;
+  canvas.setViewportTransform(canvas.viewportTransform);
 }
 
 function _fitToCanvas(canvas) {

@@ -202,9 +202,15 @@ function filterByAssignee(assigneeId) {
   if (!(_assignee instanceof Set)) {
     _assignee = new Set();
   }
-  if (_assignee.has(assigneeId)) {
-    _assignee.delete(assigneeId);
+
+  if (_ctrl) {
+    if (_assignee.has(assigneeId)) {
+      _assignee.delete(assigneeId);
+    } else {
+      _assignee.add(assigneeId);
+    }
   } else {
+    _assignee.clear();
     _assignee.add(assigneeId);
   }
   searchKey();
