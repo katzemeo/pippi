@@ -1,0 +1,79 @@
+{"frames": {
+
+"pippi_run_01.png":
+{
+	"frame": {"x":0,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+},
+"pippi_run_02.png":
+{
+	"frame": {"x":253,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+},
+"pippi_run_03.png":
+{
+	"frame": {"x":506,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+},
+"pippi_run_04.png":
+{
+	"frame": {"x":759,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+},
+"pippi_run_05.png":
+{
+	"frame": {"x":1012,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+},
+"pippi_run_06.png":
+{
+	"frame": {"x":1265,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+},
+"pippi_run_07.png":
+{
+	"frame": {"x":1518,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+},
+"pippi_run_08.png":
+{
+	"frame": {"x":1771,"y":0,"w":253,"h":300},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":253,"h":300},
+	"sourceSize": {"w":253,"h":300}
+}},
+"animations": {
+	"pippi_run": ["pippi_run_01.png","pippi_run_02.png","pippi_run_03.png","pippi_run_04.png","pippi_run_05.png","pippi_run_06.png","pippi_run_07.png","pippi_run_08.png"]
+},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.1",
+	"image": "pippi_run.png",
+	"format": "RGBA8888",
+	"size": {"w":2024,"h":300},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:da88bdb31b786d16822e6472791bc2cb:3665d40db209505bea9fc9e72dd57434:32fe68e9f68d2354bb4a132d01b8ed22$"
+}
+}

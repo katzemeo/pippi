@@ -111,13 +111,13 @@ window.onload = function () {
   });
 
   document.onkeydown = function (e) {
-    if (e.key === "Control") {
+    if (e.key === "Control" || e.key === "Meta") {
       _ctrl = true;
       e.preventDefault();
     }
   };
   document.onkeyup = function (e) {
-    if (e.key === "Control") {
+    if (e.key === "Control" || e.key === "Meta") {
       _ctrl = false;
       e.preventDefault();
     }

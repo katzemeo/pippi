@@ -226,6 +226,16 @@ async function getTeamItems(teamName: string, sprint: string|null = null, delta:
   return json;
 }
 
+function getHeaders() {
+  const headers = new Headers({
+    "User-Agent": "Pippi",
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "X-API-KEY": env.API_KEY,
+  });
+  return headers;
+}
+
 export default async (
   { request, response, params }: { request: any; response: any; params: any; },
 ) => {
@@ -241,7 +251,22 @@ export default async (
   const delta = urlParams.get("delta") === "true";
 
   try {
-    let data: any = await getTeamItems(teamName, sprint, delta);
+    let data: any = null;
+    if (env.SERVER_URL) {
+      const url = new URL(`${env.SERVER_URL}/items/${teamName}`);
+      url.search = request.url.search;
+      let res = await fetch(url, {
+        headers: getHeaders()
+      });
+      if (res.status == 201 || res.status == 200) {
+        data = await res.json();
+      }
+    }
+
+    if (!data) {
+      data = await getTeamItems(teamName, sprint, delta);
+    }
+
     response.body = data;
   } catch (error) {
     console.error(error);
