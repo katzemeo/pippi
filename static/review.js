@@ -48,6 +48,7 @@ function playReview(canvas, data, callback) {
   if (!app) {
     app = new PIXI.Application({ width: 1920, height: 1080,
       resolution: 1, clearBeforeRender: true, autoResize: true, backgroundColor: 0x212529 });
+    app.context = { data: data };
     canvas.appendChild(app.view);  
   }
 
@@ -91,7 +92,13 @@ function renderTexture(item, callback) {
       const texture = new PIXI.Texture(base);
       callback(texture);
     } else {
-      callback(PIXI.Texture.WHITE);
+      let texture = null;
+      if (item.type === "FEAT") {
+        texture = PIXI.Texture.from(`assets/feat.png`);
+      } else {
+        texture = PIXI.Texture.from(`assets/story.png`);
+      }
+      callback(texture ?? PIXI.Texture.WHITE);
     }
   });
 }
@@ -134,14 +141,19 @@ function setupReview(app, data, bgTexture, bgPrevTexture=null, callback) {
 }
 
 function startReview(app, data, callback) {
+  writeMessage("");
+  writeStats("Statistics");
+  writeSP("");
   animateSPSprint(app, data, function() {
+    document.title = TEAM_NAME();
+    writePrefix(SPRINT(data.sprint));
     showMessage(app, `${SPRINT(data.sprint)}!!`);
     setTimeout(() => { animateDelta(app, data, callback); }, 2000 / getAnimateSpeed());
   }, { count: 2 });
 }
 
 function positionSprite(pippi, sprite, factor) {
-  sprite.position.set(pippi.x + pippi.width - factor.xOffset, pippi.y - 100);
+  sprite.position.set(pippi.x + pippi.width - factor.xOffset, pippi.y - sprite.height * 0.2);
 }
 
 function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
@@ -153,6 +165,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     frames = data.frames ?? character + "_run";
     if (data.itemTexture) {
       sprite = new PIXI.Sprite(data.itemTexture);
+      scaleItem(sprite, data.item);      
     }
   }
   if (!frames) {
@@ -167,31 +180,16 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   }
 
   let pippi = null;
+  let applyAffects = false;
   if (asset) {
     animations = asset.data.animations;
     pippi = PIXI.AnimatedSprite.fromFrames(animations[frames]);
   } else {
+    character = "default";
+    applyAffects = true;
     const frames = [];
     const texture = PIXI.Texture.from(`assets/pippi.png`);
     frames.push(texture);
-    /*
-    const D8 = PIXI.groupD8;
-    for (let rotate=0; rotate < 16; rotate++) {
-      const h = D8.isVertical(rotate) ? texture.frame.width : texture.frame.height;
-      const w = D8.isVertical(rotate) ? texture.frame.height : texture.frame.width;
-      const { frame } = texture;
-      const crop = new PIXI.Rectangle(texture.frame.x, texture.frame.y, w, h);
-      const trim = crop;
-      let rotatedTexture;
-      if (rotate % 2 === 0) {
-        rotatedTexture = new PIXI.Texture(texture.baseTexture, frame, crop, trim, rotate);
-      } else {
-        rotatedTexture = new PIXI.Texture(texture.baseTexture, frame, crop, trim, rotate - 1);
-        rotatedTexture.rotate++;
-      }
-      frames.push(rotatedTexture);
-    }
-    */
     pippi = new PIXI.AnimatedSprite(frames);
   }
 
@@ -201,7 +199,6 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   }
 
   const factor = getSpriteFactor(character);
-
   const bgWidth = app.screen.width;
   const bgHeight = app.screen.height;
 
@@ -221,7 +218,6 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     if (drop) {
       sprite.y = -25;
     }
-    sprite.scale.x = sprite.scale.y = 0.5;
     app.stage.addChild(sprite);
   }
   let multi = data ? data.multi ?? 1 : 1;
@@ -245,7 +241,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
         callback();
       }
     } else {
-      if (character !== "pippi") {
+      if (applyAffects) {
         scaleCount += 0.04;
         pippi.scale.set(factor.scale + Math.sin(scaleCount) * 0.4);
       }

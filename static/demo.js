@@ -1,13 +1,14 @@
 const ASSETS = [
-  "assets/pippi.png",
+  "assets/story.png",
+  "assets/feat.png",
+  "assets/pippi.png",  
   "assets/spritesheet/pippi_run.json",
   /*"assets/spritesheet/toni.json",
   "assets/spritesheet/shay.json",
   "assets/spritesheet/seru.json",
   "assets/spritesheet/radi.json",
   "assets/spritesheet/defe.json",
-  "assets/spritesheet/cricut.json"
-  */
+  "assets/spritesheet/cricut.json"*/
 ];
 
 var _pixiJSLoaded = false;
@@ -20,7 +21,7 @@ var _pippiYOffset = 578;
 
 function getSpriteFactor(character) {
   let scale = 1;
-  let xOffset = 0;
+  let xOffset = -20;
   let yOffset = 0;
   let dir = 1;
   if (character !== "character") {
@@ -34,10 +35,12 @@ function getSpriteFactor(character) {
       if (character === "seru" || character === "radi") {
         dir = -1;
         if (character === "seru") {
-          xOffset = 25;
+          xOffset = 150;
         }
       } else if (character === "shay" || character === "defe") {
         xOffset = -50;
+      } else if (character === "toni") {
+        xOffset = -40;
       }
     }
   }
@@ -48,6 +51,21 @@ function getSpriteFactor(character) {
     yOffset: yOffset,
     dir: dir
   };
+}
+
+function scaleItem(sprite, item) {
+  if (sprite.width < 100) {
+    let factor = 1.5;
+    let scale = factor * Math.sqrt(item.estimate);
+    if (scale > 5) {
+      scale = 5;
+    } else if (scale < 0.5) {
+      scale = 0.5;
+    }
+    sprite.scale.x = sprite.scale.y = scale;
+  } else {
+    sprite.scale.x = sprite.scale.y = 0.5;
+  }
 }
 
 function setSpeed(speed) {

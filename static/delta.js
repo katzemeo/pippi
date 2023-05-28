@@ -8,7 +8,11 @@ function animateDelta(app, data, callback) {
     });
   };
 
-  animateAddedItems(app, data, nextFn);
+  if (SHOW_ADDED) {
+    animateAddedItems(app, data, nextFn);
+  } else {
+    nextFn();
+  }
 }
 
 // Note: sort in reverse since pop() is used!
@@ -16,7 +20,6 @@ function sortByProgress(items) {
   items.sort(function (a, b) {
     a = a["item"];
     b = b["item"];
-    //console.log(`sortByProgress(${a.jira}, ${b.jira})`);
     let result = compare(a, b, "status") * -1;
     if (result === 0) {
       result = compare(a, b, "estimate") * -1;
@@ -57,9 +60,20 @@ function animateAddedItems(app, data, callback) {
 
     sortByProgress(stories);
     sortByProgress(feats);
-    cycleAddedItems(app, stories, function() {
+
+    if (SHOW_STORIES) {
+      app.context.type = "Stories Added";
+      app.context.total = stories.length;
+      cycleAddedItems(app, stories, function() {
+        app.context.type = "Feats Added";
+        app.context.total = feats.length;
+        cycleAddedItems(app, feats, callback);
+      });  
+    } else {
+      app.context.type = "Feats Added";
+      app.context.total = feats.length;
       cycleAddedItems(app, feats, callback);
-    });
+    }
   } else {
     callback();
   }
@@ -85,9 +99,19 @@ function animateUpdatedItems(app, data, callback) {
 
     sortByProgress(stories);
     sortByProgress(feats);
-    cycleMessages(app, stories, function() {
+    if (SHOW_STORIES) {
+      app.context.type = "Stories Updated";
+      app.context.total = stories.length;
+      cycleMessages(app, stories, function() {
+        app.context.type = "Feats Updated";
+        app.context.total = feats.length;      
+        cycleMessages(app, feats, callback);
+      });
+    } else {
+      app.context.type = "Feats Updated";
+      app.context.total = feats.length;      
       cycleMessages(app, feats, callback);
-    });
+    }
   } else {
     callback();
   }
@@ -103,13 +127,12 @@ function animateNewItem(app, item, callback, options) {
 
     const bgWidth = app.screen.width;
     const bgHeight = app.screen.height;
-    sprite.scale.x = sprite.scale.y = 0.5;
-    //sprite.position.set(50, -25);
+    scaleItem(sprite, item);
     sprite.y = -25;
     if (options && options.forward) {
       sprite.x = 50;
     } else {
-      sprite.x = randomInt(50, bgWidth - sprite.width);
+      sprite.x = randomInt(50, bgWidth - sprite.width*2);
     }
     app.stage.addChild(sprite);
 
@@ -174,6 +197,11 @@ function animateNewItem(app, item, callback, options) {
 function cycleAddedItems(app, messages, callback) {
   if (messages.length > 0) {
     const m = messages.pop();
+    const ctx = app.context.type;
+    const total = app.context.total;
+    const title = `${ctx} in Sprint`;
+    writeStats(`${total - messages.length} of ${total} ${ctx}`, title);
+    writeSP(m.item.estimate);
     let status = m.item.status;
     let options = {};
     if (status === "INPROGRESS" && (m.item.type === "STORY" || m.item.type === "SPIKE")) {
@@ -190,10 +218,10 @@ function cycleAddedItems(app, messages, callback) {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ COMPLETED (NEW) ${m.item.jira} - ${m.item.summary}`, true);
       }
       showMessage(app, `✱ ${m.item.jira} ✔ ${m.item.summary}`, null, options);
-
       let data = lookupSprite(m.item.assignee);
       data.multi = 1;
       data.filter = false;
+      data.item = m.item;
       const itemRendered = function(texture) {
         data.itemTexture = texture
         animateSPSprint(app, data, function() {
@@ -261,6 +289,11 @@ function lookupSprite(memberID) {
 function cycleMessages(app, messages, callback) {
   if (messages.length > 0) {
     const m = messages.pop();
+    const ctx = app.context.type;
+    const total = app.context.total;
+    const title = `${ctx} in Sprint`;
+    writeStats(`${total - messages.length} of ${total} ${ctx}`, title);
+    writeSP(m.item.estimate);
     let status = "";
     for (let i=0; i < m.diffs.length; i++) {
       if (m.diffs[i].key === "status") {
@@ -285,6 +318,7 @@ function cycleMessages(app, messages, callback) {
       let data = lookupSprite(m.item.assignee);
       data.multi = 1;
       data.filter = false;
+      data.item = m.item;
       const itemRendered = function(texture) {
         data.itemTexture = texture
         animateSPSprint(app, data, function() {

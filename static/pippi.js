@@ -12,8 +12,11 @@ const EMPTY_TEAM = {
 var _teams = {};
 var _teamName = null;
 var _team = EMPTY_TEAM;
+
 var ANIMATE_SPEED = 1;
 var SHOW_ALL = false;
+var SHOW_ADDED = true;
+var SHOW_STORIES = true;
 
 window.onload = function () {
   const url = new URL(window.location.href);
@@ -21,7 +24,7 @@ window.onload = function () {
     _teamName = url.searchParams.get("team");
   }
   if (url.searchParams.has("show_all")) {
-    SHOW_ALL = url.searchParams.get("show_all") === "true";
+    SHOW_ALL = url.searchParams.get("show_all") !== "false";
   }
   if (url.searchParams.has("speed")) {
     ANIMATE_SPEED = Number(url.searchParams.get("speed"));
@@ -33,10 +36,6 @@ window.onload = function () {
   }
   loadMyTeam();
 };
-
-function writeMessage(msg) {
-  console.log(msg);
-}
 
 function lookupTeamMember(memberID, short=false) {
   let memberName = memberID;
@@ -77,11 +76,19 @@ function compare(a, b, attr) {
   return (a === b ? 0 : a > b ? 1 : -1);
 }
 
+function isEmpty(value) {
+  return !value || ((typeof value) === "string" &&  value.trim() === "");
+}
+
 function SPRINT(sprint) {
-  if (!sprint || sprint === "BASE") {
+  if (isEmpty(sprint) || sprint === "BASE") {
     sprint = "<PI PLANNING>";
   }
   return sprint;
+}
+
+function TEAM_NAME() {
+  return _team.squad ?? _team.name ?? MY_TEAM;
 }
 
 function loadMyTeam() {
@@ -140,7 +147,6 @@ function refreshTeam(team, showNext=SHOW_ALL) {
   if (team) {
     //console.log(`refreshTeam() - ${team.name}/${team.sprint}, showNext=${showNext}`);
     _team = team;
-    document.title = SPRINT(_team.sprint);
     showReviewCanvas(showNext);
   }
 }
@@ -209,6 +215,31 @@ function loadTeamItems(teamName, sprint = null) {
     console.error(error);
     window.alert("Unable to load team information.  Please try again.");
   });
+}
+
+function writePrefix(prefix) {
+  const el = document.getElementById("message-prefix");
+  el.innerText = prefix;
+}
+
+function writeMessage(msg, consolelog=false) {
+  const el = document.getElementById("message-text");
+  el.value = msg;
+  if (consolelog) {
+    console.log(msg);
+  }
+}
+
+function writeStats(stats, title="") {
+  const el = document.getElementById("message-stats");
+  el.innerText = stats;
+  el.title = title;
+}
+
+function writeSP(sp, title="Estimate") {
+  const el = document.getElementById("message-sp");
+  el.innerText = `${sp ?? "?"} SP`;
+  el.title = title;
 }
 
 function loadJSSync(url, onload = null) {

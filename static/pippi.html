@@ -6,6 +6,9 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- Bootstrap CSS & Material Icons -->
+  <link href="/public/css/bootstrap.css" rel="stylesheet">
+  <link href="/public/css/MaterialIcons.css" rel="stylesheet">
   <style>
     body {
       padding: 0;
@@ -19,9 +22,22 @@
 </head>
 
 <body oncontextmenu="return false;">
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="/public/bootstrap.bundle.min.js"></script>
   <script src="/public/pippi.js"></script>
   <script src="/public/demo.js"></script>
 
   <div id="pixi" />
+
+  <!-- Footer -->
+  <nav id="footer" class="navbar fixed-bottom navbar-light bg-light py-0">
+    <div class="input-group">
+      <span class="input-group-text text-primary" id="message-prefix">Message</span>
+      <input type="text" class="form-control" id="message-text" aria-label="Message" readonly />
+      <span class="input-group-text text-muted" id="message-stats">Statistics</span>
+      <span class="input-group-text text-muted" id="message-sp">SP</span>
+    </div>
+  </nav>
+
 </body>
 </html>
