@@ -17,6 +17,9 @@ var ANIMATE_SPEED = 1;
 var SHOW_ALL = false;
 var SHOW_ADDED = true;
 var SHOW_STORIES = true;
+var DEMO_ACTIVE = false;
+
+var _animateSpeedParam = ANIMATE_SPEED;
 
 window.onload = function () {
   const url = new URL(window.location.href);
@@ -27,14 +30,19 @@ window.onload = function () {
     SHOW_ALL = url.searchParams.get("show_all") !== "false";
   }
   if (url.searchParams.has("speed")) {
-    ANIMATE_SPEED = Number(url.searchParams.get("speed"));
-    if (ANIMATE_SPEED < 1) {
-      ANIMATE_SPEED = 1;
-    } else if (ANIMATE_SPEED > 3) {
-      ANIMATE_SPEED = 3;
+    _animateSpeedParam = Number(url.searchParams.get("speed"));
+    if (isNaN(_animateSpeedParam)) {
+      _animateSpeedParam = ANIMATE_SPEED;
+    } else if (_animateSpeedParam < 1) {
+      _animateSpeedParam = 1;
+    } else if (_animateSpeedParam > 3) {
+      _animateSpeedParam = 3;
     }
+    ANIMATE_SPEED = _animateSpeedParam;
   }
+
   loadMyTeam();
+  configurePopupListener();
 };
 
 function lookupTeamMember(memberID, short=false) {
@@ -143,7 +151,7 @@ function processTeamItems(data) {
   return team;
 }
 
-function refreshTeam(team, showNext=SHOW_ALL) {
+function refreshTeam(team=_team, showNext=SHOW_ALL) {
   if (team) {
     //console.log(`refreshTeam() - ${team.name}/${team.sprint}, showNext=${showNext}`);
     _team = team;
@@ -217,6 +225,12 @@ function loadTeamItems(teamName, sprint = null) {
   });
 }
 
+const removeChildren = (parent, header = 0) => {
+  while (parent.lastChild && parent.childElementCount > header) {
+    parent.removeChild(parent.lastChild);
+  }
+};
+
 function writePrefix(prefix) {
   const el = document.getElementById("message-prefix");
   el.innerText = prefix;
@@ -271,12 +285,95 @@ function getNextSprint() {
 function showReviewCanvas(showNext) {
   const pixiParent = document.getElementById("pixi");
   if (pixiParent) {
+    DEMO_ACTIVE = true;
     let callback = function() {
       const nextSprint = getNextSprint();
       if (nextSprint && showNext) {
         loadTeamItems(_teamName ?? "MY_TEAM", nextSprint);
+      } else {
+        DEMO_ACTIVE = false;
       }
     };
     loadAndPlayReview(pixiParent, _team, callback);
   }
+}
+
+function toggleShowAdded() {
+  SHOW_ADDED = !SHOW_ADDED;
+}
+
+function toggleShowStories() {
+  SHOW_STORIES = !SHOW_STORIES;
+}
+
+function closePopupMenu() {
+  const menu = document.getElementById("context-menu");
+  menu.style.display = 'none';
+}
+
+function openPopupMenu(e) {
+  const menu = document.getElementById("context-menu"); 
+  removeChildren(menu);
+  buildDemoPopupMenu(menu);
+  menu.style.display = 'block';
+  menu.style.left = e.pageX + "px";
+  menu.style.top = e.pageY + "px";
+
+  return false;
+}
+
+function configurePopupListener() {
+  document.onclick = closePopupMenu; 
+  document.oncontextmenu = openPopupMenu;  
+}
+
+function buildDemoPopupMenu(menu) {
+  if (!_team.base) {
+    return;
+  }
+
+  let mi = document.createElement("span");
+  mi.className = "list-group-item list-group-item-secondary";
+  mi.innerHTML = `<h5 class="mb-1"><span class="text-decoration-underline">${TEAM_NAME()} Demo</span></h5>`;
+  menu.appendChild(mi);
+
+  const className = "list-group-item list-group-item-action menuitem-padding";
+  let toggles = [ {caption: `Show Added`, method: `toggleShowAdded()`, value: SHOW_ADDED},
+    {caption: `Show Stories`, method: `toggleShowStories()`, value: SHOW_STORIES} ];
+  for (let i=0; i<toggles.length; i++) {
+    mi.href = "#";
+    mi = document.createElement("a");
+    if (toggles[i].value) {
+      mi.className = className +" active";
+    } else {
+      mi.className = className;
+    }
+    mi.href = "#";
+    mi.setAttribute("onclick", `${toggles[i].method}; return false;`);
+    mi.innerHTML = `<i class="material-icons">visibility</i> ${toggles[i].caption}`;
+    menu.appendChild(mi);  
+  }
+
+  let itemsHTML = `<li><a class="dropdown-item" href="javascript:setSpeed(1)">Play 1x ${ANIMATE_SPEED === 1 ? '<i class="material-icons">check</i>':''}</a></li>
+  <li><a class="dropdown-item" href="javascript:setSpeed(2)">Play 2x ${ANIMATE_SPEED === 2 ? '<i class="material-icons">check</i>':''}</a></li>
+  <li><a class="dropdown-item" href="javascript:setSpeed(3)">Play 3x ${ANIMATE_SPEED === 3 ? '<i class="material-icons">check</i>':''}</a></li>`;
+  if (DEMO_ACTIVE && ANIMATE_SPEED > 0) {
+    itemsHTML += `<li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="javascript:setSpeed(-1)"><i class="material-icons">cancel</i> Abort Demo</a></li>`;
+  } else {
+    itemsHTML += `<li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="javascript:refreshTeam()"><i class="material-icons">play_circle</i> Start Demo</a></li>`;
+  }
+  addDropdownMenu(menu, "Animation Speed", itemsHTML);
+}
+
+function addDropdownMenu(menu, caption, itemsHTML, icon=null) {
+  let iconHTML = "";
+  if (icon) {
+    iconHTML = `<i class="material-icons">${icon}</i> `;
+  }
+  let mi = document.createElement("div");
+  mi.className = "nav-item dropdown list-group-item list-group-item-action dropend";
+  mi.innerHTML = `<a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">${iconHTML}${caption}</a><ul class="dropdown-menu">${itemsHTML}</ul>`;
+  menu.appendChild(mi);
 }

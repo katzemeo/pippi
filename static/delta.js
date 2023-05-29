@@ -3,7 +3,7 @@ function animateDelta(app, data, callback) {
     animateUpdatedItems(app, data, function() {
       showMessage(app, `Thank You!!!`);
       if (callback) {
-        setTimeout(() => { callback(); }, 3000 / getAnimateSpeed());
+        setTimeout(() => { callback(); }, 3000 / getSpeed());
       }
     });
   };
@@ -141,7 +141,7 @@ function animateNewItem(app, item, callback, options) {
 
     let count = 1;
     let bounce = 0;
-    let speed = 20 * getAnimateSpeed();
+    let speed = 20 * getSpeed();
     let distance = sprite.x + randomInt(300, 500);
     let acceleration = 0;
     const l2rTickerCB = delta => {
@@ -177,11 +177,11 @@ function animateNewItem(app, item, callback, options) {
       if (sprite.y > bgHeight - sprite.height - 50) {
         app.ticker.remove(t2bTickerCB);
         if (options && options.forward) {
-          speed = 10 * getAnimateSpeed();
+          speed = 10 * getSpeed();
           distance = bgWidth + 200;
           acceleration = 0.25
         } else {
-          speed = 4 * getAnimateSpeed();
+          speed = 4 * getSpeed();
         }
         app.ticker.add(l2rTickerCB);
       } else {
@@ -208,7 +208,7 @@ function cycleAddedItems(app, messages, callback) {
       writeMessage(`${lookupTeamMember(m.item.assignee)} working on (NEW) ${m.item.jira} - ${m.item.summary}`, true);
       showMessage(app, `✱ ${m.item.jira} ⇨ ${m.item.summary}`, null, options);
       animateNewItem(app, m.item, function() {
-        queueFunction(() => { cycleAddedItems(app, messages, callback); }, 500 / getAnimateSpeed());
+        queueFunction(() => { cycleAddedItems(app, messages, callback); }, 500 / getSpeed());
       }, { forward: true });
     } else if (status === "COMPLETED") {
       options = { fill: ['#ffffff', '#008800'], stroke: '#001a33'};
@@ -227,7 +227,7 @@ function cycleAddedItems(app, messages, callback) {
         animateSPSprint(app, data, function() {
           let symbols = getCompletedSymbols(m.item, true);
           showMessage(app, `${m.item.type} ✱ ${m.item.jira} ✔ COMPLETED!\n${symbols}`, null, options);
-          queueFunction(() => { cycleAddedItems(app, messages, callback); }, 3000 / getAnimateSpeed());
+          queueFunction(() => { cycleAddedItems(app, messages, callback); }, 3000 / getSpeed());
         }, { drop: true });
       }
       renderTexture(m.item, itemRendered);
@@ -249,7 +249,7 @@ function cycleAddedItems(app, messages, callback) {
       writeMessage(`[${status}] ${symbol} (NEW) ${m.item.jira} - ${m.item.summary}`, true);
       showMessage(app, `✱ ${m.item.jira} ${symbol} ${m.item.summary}`, null, options);
       animateNewItem(app, m.item, function() {
-        queueFunction(() => { cycleAddedItems(app, messages, callback); }, time / getAnimateSpeed());
+        queueFunction(() => { cycleAddedItems(app, messages, callback); }, time / getSpeed());
       });
     }
   } else if (callback) {
@@ -306,7 +306,7 @@ function cycleMessages(app, messages, callback) {
     if (status === "INPROGRESS" && (m.item.type === "STORY" || m.item.type === "SPIKE")) {
       writeMessage(`${lookupTeamMember(m.item.assignee)} ⌛ working on ${m.item.jira} - ${m.item.summary}`, true);
       showMessage(app, `${m.item.jira} ⇨ ${m.item.summary}`, null, options);
-      queueFunction(() => { cycleMessages(app, messages, callback); }, 1000 / getAnimateSpeed());
+      queueFunction(() => { cycleMessages(app, messages, callback); }, 1000 / getSpeed());
     } else if (status === "COMPLETED") {
       options = { fill: ['#ffffff', '#008800'], stroke: '#001a33'};
       if (m.item.type === "FEAT") {
@@ -324,7 +324,7 @@ function cycleMessages(app, messages, callback) {
         animateSPSprint(app, data, function() {
           let symbols = getCompletedSymbols(m.item, false);
           showMessage(app, `${m.item.type} ${m.item.jira} ✔ COMPLETED!\n${symbols}`, null, options);
-          queueFunction(() => { cycleMessages(app, messages, callback); }, 3000 / getAnimateSpeed());
+          queueFunction(() => { cycleMessages(app, messages, callback); }, 3000 / getSpeed());
         });
       }
       renderTexture(m.item, itemRendered);
@@ -346,7 +346,7 @@ function cycleMessages(app, messages, callback) {
       }
       writeMessage(`[${status}] ${symbol} ${m.item.jira} - ${m.item.summary}`, true);
       showMessage(app, `${m.item.jira} ${symbol} ${m.item.summary}`, null, options);
-      queueFunction(() => { cycleMessages(app, messages, callback); }, time / getAnimateSpeed());
+      queueFunction(() => { cycleMessages(app, messages, callback); }, time / getSpeed());
     }
   } else if (callback) {
     callback();

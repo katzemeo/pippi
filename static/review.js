@@ -50,6 +50,8 @@ function playReview(canvas, data, callback) {
       resolution: 1, clearBeforeRender: true, autoResize: true, backgroundColor: 0x212529 });
     app.context = { data: data };
     canvas.appendChild(app.view);  
+  } else {
+    app.stage.removeChildren();
   }
 
   let scaleX = bgWidth / app.view.width;
@@ -103,7 +105,14 @@ function renderTexture(item, callback) {
   });
 }
 
-function getAnimateSpeed() {
+function getSpeed() {
+  if (!DEMO_ACTIVE || ANIMATE_SPEED < 0) {
+    cancelQueue();
+    DEMO_ACTIVE = false;
+    ANIMATE_SPEED = _animateSpeedParam;
+    writeMessage(`Demo stopped.  Please press refresh to restart.`);
+    throw new Error("Abort");
+  }
   return ((ANIMATE_SPEED > 0) ? ANIMATE_SPEED : 1);
 }
 
@@ -122,12 +131,12 @@ function setupReview(app, data, bgTexture, bgPrevTexture=null, callback) {
   app.stage.addChild(bgSprite);
   fadeSprite(bgSprite, 2000, function() {
       showMessage(app, `Ready`);
-      queueFunction(() => { showMessage(app, `Steady`); }, 2000 / getAnimateSpeed());
+      queueFunction(() => { showMessage(app, `Steady`); }, 2000 / getSpeed());
       if (bgPrevTexture) {
         bgSprite.texture = bgTexture;
-        fadeSprite(bgSprite, 2000 / getAnimateSpeed(), null, true, 1);
+        fadeSprite(bgSprite, 2000 / getSpeed(), null, true, 1);
       }
-    }, false, 0, 3000 / getAnimateSpeed());
+    }, false, 0, 3000 / getSpeed());
   showMessage(app, `${data.squad ?? "My Team"}`);
 
   // Animate sprint delta
@@ -148,7 +157,7 @@ function startReview(app, data, callback) {
     document.title = TEAM_NAME();
     writePrefix(SPRINT(data.sprint));
     showMessage(app, `${SPRINT(data.sprint)}!!`);
-    setTimeout(() => { animateDelta(app, data, callback); }, 2000 / getAnimateSpeed());
+    setTimeout(() => { animateDelta(app, data, callback); }, 2000 / getSpeed());
   }, { count: 2 });
 }
 
@@ -222,7 +231,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   }
   let multi = data ? data.multi ?? 1 : 1;
   let count = options.count ?? 1;
-  let speed = 8 * getAnimateSpeed() * multi;
+  let speed = 8 * getSpeed() * multi;
   let scaleCount = 0;
   const tickerCB = delta => {
     if (pippi.x > bgWidth + 200) {
@@ -256,7 +265,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     if (sprite.y > bgHeight - sprite.height - 50) {
       app.ticker.remove(t2bTickerCB);
       positionSprite(pippi, sprite, factor);
-      speed = 8 * getAnimateSpeed() * multi;
+      speed = 8 * getSpeed() * multi;
       pippi.play();
       app.ticker.add(tickerCB);
     } else {
