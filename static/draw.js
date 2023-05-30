@@ -256,7 +256,7 @@ function buildTargetPopupMenu(target, menu) {
     menu.appendChild(mi);
   }
 
-   // Open item external
+  // Open item external
   if (target.myitem && ISSUE_WEBSITE_URL) {
     const item = target.myitem;
     mi = document.createElement("a");

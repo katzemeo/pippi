@@ -338,11 +338,21 @@ function buildDemoPopupMenu(menu) {
   menu.appendChild(mi);
 
   const className = "list-group-item list-group-item-action menuitem-padding";
+
+  // Redirect to Server URL
+  mi = document.createElement("a");
+  mi.className = className;
+  mi.href = `/redirect?sprint=${encodeURIComponent(_team.sprint)}`;
+  mi.target = "pippi";
+  mi.innerHTML = `<i class="material-icons">open_in_browser</i> Open Server`;
+  menu.appendChild(mi);
+
+  // Show demo options
   let toggles = [ {caption: `Show Added`, method: `toggleShowAdded()`, value: SHOW_ADDED},
     {caption: `Show Stories`, method: `toggleShowStories()`, value: SHOW_STORIES} ];
   for (let i=0; i<toggles.length; i++) {
-    mi.href = "#";
     mi = document.createElement("a");
+    mi.href = "#";
     if (toggles[i].value) {
       mi.className = className +" active";
     } else {

@@ -64,6 +64,9 @@ window.onload = function () {
     _teamNameParam = url.searchParams.get("team");
     _teamName = _teamNameParam;
   }
+  if (url.searchParams.has("sprint")) {
+    _sprintParam = url.searchParams.get("sprint");
+  }
   if (url.searchParams.has("mode")) {
     _modeParam = url.searchParams.get("mode");
   }
@@ -91,7 +94,7 @@ window.onload = function () {
   }
   refreshTeam();
 
-  if (!_teamName) {
+  if (!_teamName || _sprintParam && _sprintParam !== _team.sprint) {
     loadMyTeam();
   }
 
@@ -546,7 +549,7 @@ function setTeam(team) {
       capacity += `, <strong class="text-danger">Over: ${EFF(_team.computed_effort - _team.capacity)}</strong>`;
     }
   }
-  el.innerHTML = (_team.squad ?? _team.name ?? "") +" ("+ capacity +")";
+  el.innerHTML = TEAM_NAME() +" ("+ capacity +")";
   el.title = `${formatDate(NOW)} - ${team.time_zone}`;
 }
 
@@ -800,12 +803,7 @@ function toggleSearchKey(key, toggleId) {
 }
 
 function loadMyTeam() {
-  let sprint = null;
-  const url = new URL(window.location.href);
-  if (url.searchParams.has("sprint")) {
-    sprint = url.searchParams.get("sprint");
-  }
-  loadTeamItems(_teamName ?? "MY_TEAM", sprint);
+  loadTeamItems(_teamName ?? "MY_TEAM", _sprintParam);
 }
 
 function showSprint(sprint, nextFlag=true) {
@@ -913,7 +911,7 @@ function renderCell(row, value, colspan) {
 
 function writePrefix(prefix) {
   const el = document.getElementById("message-prefix");
-  el.innerHTML = prefix;
+  el.innerText = prefix;
 }
 
 function writeMessage(msg, consolelog=false) {
@@ -924,9 +922,9 @@ function writeMessage(msg, consolelog=false) {
   }
 }
 
-function writeStats(stats, title) {
+function writeStats(stats, title="") {
   const el = document.getElementById("message-stats");
-  el.innerHTML = stats;
+  el.innerText = stats;
   el.title = title;
 }
 
@@ -1628,6 +1626,10 @@ function SPRINT(sprint, esc=true) {
     sprint = "<PI PLANNING>";
   }
   return esc ? ESC(sprint) : sprint;
+}
+
+function TEAM_NAME() {
+  return _team.squad ?? _team.name ?? MY_TEAM;
 }
 
 function loadJSSync(url, onload = null) {

@@ -56,7 +56,7 @@ function getSpriteFactor(character) {
 function scaleItem(sprite, item) {
   if (sprite.width < 100) {
     let factor = 1.5;
-    let scale = factor * Math.sqrt(item.estimate);
+    let scale = factor * Math.sqrt(item.estimate ?? 3);
     if (scale > 5) {
       scale = 5;
     } else if (scale < 0.5) {

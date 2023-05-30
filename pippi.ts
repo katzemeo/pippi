@@ -14,9 +14,21 @@ const logRequest: boolean = env.SERVER_LOG_REQUEST === "true";
 // If true, implement file sending directly instead of using Oak send()
 const DEPLOY_OAK_SEND_WORKAROUND = true;
 
+function redirect(ctx: any) {
+  let redirectURL = env.SERVER_URL;
+  if (redirectURL) {
+    const urlParams = ctx.request.url.search;
+    if (urlParams) {
+      redirectURL += `/public/index.html${urlParams}`;
+    }
+    ctx.response.redirect(redirectURL);
+  }
+}
+
 const router = new Router();
 router
   .get("/ping", ping)
+  .get("/redirect", redirect)
   .get("/items/:team", getItems)
   .get("/render/:id", renderItem)
 
