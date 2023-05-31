@@ -19,8 +19,9 @@ async function renderItem(teamName: string, sprint: string|null = null, itemID: 
       const file = await Deno.open(imagePath);
       Deno.close(file.rid);
     } catch (error) {
-      //console.log(error);
-      ensureFile(imagePath);
+      if (env.RENDER_OUTPUT === "true") {
+        ensureFile(imagePath);
+      }
       image = "default_item.png";
     }
   }

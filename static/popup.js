@@ -90,8 +90,19 @@ function buildSprintPopupMenu(menu) {
   mi.innerHTML = `<h5 class="mb-1"><span class="text-decoration-underline">${_team.name ?? _team.squad} Sprint</span></h5>`;
   menu.appendChild(mi);
 
-  const sprints = _team.base[_team.name];
   const className = "list-group-item list-group-item-action menuitem-padding";
+
+  // PI Demo
+  mi = document.createElement("a");
+  mi.className = className;
+  mi.href = "#";
+  mi.target = "pippi";
+  mi.setAttribute("onclick", `openPIPPI(window, true, false, false, 1, true); return false;`);
+  mi.innerHTML = `👏 PI Demo 🎉`;
+  menu.appendChild(mi);
+
+  // Show sprints
+  const sprints = _team.base[_team.name];
   sprints.forEach((v) => {
     let caption = SPRINT(v);
     if (v !== _team.sprint) {

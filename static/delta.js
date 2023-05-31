@@ -1,7 +1,12 @@
 function animateDelta(app, data, callback) {
   const nextFn = function() {
     animateUpdatedItems(app, data, function() {
-      showMessage(app, `Thank You!!!`);
+      const nextSprint = getNextSprint();
+      if (callback && nextSprint) {
+        showMessage(app, `NEXT: ${nextSprint}`, function() { loadTeamItems(_teamName ?? "MY_TEAM", nextSprint); });
+      } else {
+        showMessage(app, `Thank You!!!`);
+      }
       if (callback) {
         setTimeout(() => { callback(); }, 3000 / getSpeed());
       }

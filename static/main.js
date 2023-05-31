@@ -562,7 +562,11 @@ function refreshTeamDate(showTime = false, timeZone = TIME_ZONE) {
       dateFormatted = formatDate(_date, timeZone);
     }
     let el = document.getElementById("team_date");
-    el.innerHTML = `${SPRINT(_team.sprint)}<br><nobr>${dateFormatted}</nobr>`;
+    if (_team.delta) {
+      el.innerHTML = `<a class="clickable" onclick="openPIPPI(window.self)">${SPRINT(_team.sprint)}</a><br><nobr>${dateFormatted}</nobr>`;
+    } else {
+      el.innerHTML = `${SPRINT(_team.sprint)}<br><nobr>${dateFormatted}</nobr>`;
+    }
   }
 }
 
@@ -1794,4 +1798,24 @@ function updateCanvasSelection(canvas=_canvasMap) {
     writeMessage(message);
     canvas.requestRenderAll();
   }
+}
+
+function openPIPPI(parent=window, showAll=false, showAdded=true, showStories=true, speed=2, fullscreen=false) {
+  const url = `/public/pippi.html?speed=${speed}&show_all=${showAll}&show_added=${showAdded}&show_stories=${showStories}&sprint=${encodeURIComponent(_team.sprint)}`;
+  let win;
+  if (fullscreen) {
+    win = parent.open(url, "pippi", `directories=no,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,resizable=yes,copyhistory=no,fullscreen=yes`);
+    if (win.outerWidth < screen.width || win.outerHeight < screen.height) {
+      win.moveTo(0,0);
+      //win.resizeTo(screen.availWidth, screen.availHeight);
+      win.resizeTo(screen.width, screen.height);
+    }
+  } else {
+    const width = 1024;
+    const height = 576;
+    const top = parent.top.outerHeight / 2 + parent.top.screenY - (height / 2);
+    const left = parent.top.outerWidth / 2 + parent.top.screenX - (width / 2);
+    win = parent.open(url, "pippi", `directories=no,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,resizable=yes,copyhistory=no,fullscreen=no,width=${width},height=${height},top=${top},left=${left}`);
+  }
+  win.focus();
 }

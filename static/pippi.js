@@ -29,6 +29,12 @@ window.onload = function () {
   if (url.searchParams.has("show_all")) {
     SHOW_ALL = url.searchParams.get("show_all") !== "false";
   }
+  if (url.searchParams.has("show_added")) {
+    SHOW_ADDED = url.searchParams.get("show_added") !== "false";
+  }
+  if (url.searchParams.has("show_stories")) {
+    SHOW_STORIES = url.searchParams.get("show_stories") !== "false";
+  }
   if (url.searchParams.has("speed")) {
     _animateSpeedParam = Number(url.searchParams.get("speed"));
     if (isNaN(_animateSpeedParam)) {

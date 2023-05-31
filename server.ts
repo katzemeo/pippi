@@ -7,6 +7,7 @@ import healthz from "./controllers/healthz.ts";
 import getItems from "./controllers/getItems.ts";
 import getItem from "./controllers/getItem.ts";
 import uploadItems from "./controllers/uploadItems.ts";
+import renderItem from "./controllers/renderItem.ts";
 
 const HOST = env.HOST ?? "0.0.0.0";
 const PORT = env.PORT ? parseInt(env.PORT) : 8000;
@@ -38,6 +39,7 @@ router
   .get("/healthz", healthz)
   .get("/livez", livez)
   .get("/readyz", readyz)
+  .get("/render/:id", renderItem)  
   .get("/items/:team", getItems)
   .get("/item/:id", getItem)
   .post("/items/upload", uploadItems)
