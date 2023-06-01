@@ -8,7 +8,8 @@ const ASSETS = [
   "assets/spritesheet/seru.json",
   "assets/spritesheet/radi.json",
   "assets/spritesheet/defe.json",
-  "assets/spritesheet/cricut.json"*/
+  "assets/spritesheet/cricut.json",*/
+  "assets/spritesheet/attack.json"
 ];
 
 var _pixiJSLoaded = false;
@@ -40,6 +41,8 @@ function getSpriteFactor(character) {
       } else if (character === "shay" || character === "defe") {
         xOffset = -50;
       } else if (character === "toni") {
+        xOffset = -40;
+      } else if (character === "attack") {
         xOffset = -40;
       }
     }

@@ -189,17 +189,30 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   }
 
   let pippi = null;
+  let animation = null;
   let applyAffects = false;
   if (asset) {
     animations = asset.data.animations;
     pippi = PIXI.AnimatedSprite.fromFrames(animations[frames]);
+    animation = pippi;
   } else {
-    character = "default";
-    applyAffects = true;
-    const frames = [];
-    const texture = PIXI.Texture.from(`assets/pippi.png`);
-    frames.push(texture);
-    pippi = new PIXI.AnimatedSprite(frames);
+    texture = PIXI.Texture.from(`assets/${character}.png`);
+    if (!texture) {
+      character = "default";
+      applyAffects = true;
+      const frames = [];
+      texture = PIXI.Texture.from(`assets/pippi.png`);
+      frames.push(texture);
+      pippi = new PIXI.AnimatedSprite(frames);
+    } else {
+      asset = PIXI.Assets.cache.get(`assets/spritesheet/attack.json`);
+      animations = asset.data.animations;
+      animation = PIXI.AnimatedSprite.fromFrames(animations["attack_sprite"]);
+      const charSprite = new PIXI.Sprite(texture);
+      pippi = new PIXI.Container();
+      pippi.addChild(charSprite);
+      pippi.addChild(animation);
+    }
   }
 
   if (!pippi) {
@@ -212,7 +225,9 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   const bgHeight = app.screen.height;
 
   // Setup animation at 6 fps.
-  pippi.animationSpeed = 1 / 6;
+  if (animation) {
+    animation.animationSpeed = 1 / 6;
+  }  
   pippi.position.set(50, bgHeight - 180);
   pippi.scale.x = factor.scale * factor.dir;
   pippi.scale.y = factor.scale;
@@ -242,7 +257,9 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
       count--;
       if (count <= 0) {
         app.ticker.remove(tickerCB);
-        pippi.stop();
+        if (animation) {
+          animation.stop();
+        }
         app.stage.removeChild(pippi);
         if (sprite) {
           app.stage.removeChild(sprite);
@@ -266,7 +283,9 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
       app.ticker.remove(t2bTickerCB);
       positionSprite(pippi, sprite, factor);
       speed = 8 * getSpeed() * multi;
-      pippi.play();
+      if (animation) {
+        animation.play();
+      }
       app.ticker.add(tickerCB);
     } else {
       sprite.y = sprite.y + speed * delta;
@@ -277,7 +296,9 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   if (sprite && drop) {
     app.ticker.add(t2bTickerCB);
   } else {
-    pippi.play();
+    if (animation) {
+      animation.play();
+    }
     app.ticker.add(tickerCB);
   }
 }

@@ -143,7 +143,8 @@ app.use(async (ctx, next) => {
       await next();
     }
   } else if (pathname == "" || pathname == "/") {
-    ctx.response.redirect("/public/pippi.html");
+    let url = `/public/pippi.html${env.START_OPTIONS ? "?"+ env.START_OPTIONS : ""}`
+    ctx.response.redirect(url);
   } else {
     await next();
   }

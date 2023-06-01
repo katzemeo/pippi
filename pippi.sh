@@ -7,6 +7,7 @@
 
 #setproxy
 #export DENO_TLS_CA_STORE="system"
-#export ENV_PATH=".env.local"
+export ENV_PATH="pippi.env"
 
-~/.deno/bin/deno run --allow-net=:80 --allow-env --allow-read --watch server.ts
+#~/.deno/bin/deno run --cert ./etc/localhost.crt --allow-net=:80 --allow-env --allow-read --allow-run --allow-write --watch pippi.ts
+~/.deno/bin/deno run --allow-net=:80 --allow-env --allow-read --allow-run --allow-write --watch pippi.ts

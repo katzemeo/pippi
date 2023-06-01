@@ -210,7 +210,16 @@ async function getTeamItems(teamName: string, sprint: string|null = null, delta:
       }
 
       json.base = {};
-      json.base[teamName] = entries.sort();
+      json.base[teamName] = entries.sort(function (a: any, b: any) {
+        if (a.startsWith("IP") && b.startsWith("IP")) {
+          return a.localeCompare(b);
+        } else if (a.startsWith("IP") && !b.startsWith("IP")) {
+          return 1;
+        } else if (!a.startsWith("IP") && b.startsWith("IP")) {
+          return -1;
+        }
+        return a.localeCompare(b);
+      });
       if (delta) {
         json.delta = await computeDelta(json, teamName, teamDir);
       }
