@@ -46,21 +46,25 @@ function playReview(canvas, data, callback) {
 
   let app = _app;
   if (!app) {
-    app = new PIXI.Application({ width: 1920, height: 1080,
+    app = new PIXI.Application({ width: data.canvasWidth ?? 1920, height: data.canvasHeight ?? 1080,
       resolution: 1, clearBeforeRender: true, autoResize: true, backgroundColor: 0x212529 });
     app.context = { data: data };
-    canvas.appendChild(app.view);  
+    canvas.appendChild(app.view);
+    _app = app;
   } else {
     app.stage.removeChildren();
   }
 
-  let scaleX = bgWidth / app.view.width;
-  let scaleY = bgHeight / app.view.height;
-  if (scaleX > scaleY) {
-    scaleX = scaleY;
+  let scale = data.stageScale;
+  if (!scale) {
+    scale = bgWidth / app.view.width;
+    let scaleY = bgHeight / app.view.height;
+    if (scale > scaleY) {
+      scale = scaleY;
+    }
   }
-  app.stage.scale.x = scaleX;
-  app.stage.scale.y = scaleX;
+  app.stage.scale.x = scale;
+  app.stage.scale.y = scale;
 
   let image = new Image();
   image.onload = function() {
@@ -70,6 +74,7 @@ function playReview(canvas, data, callback) {
   };
   // TODO - load sprint charts
   image.src = `/public/assets/spritesheet/pippi_run.png`;
+
   return app;
 }
 
@@ -81,7 +86,22 @@ async function fetchBlob(url) {
   return null;
 }
 
+function renderDefaultTexture(item, callback) {
+  let texture = null;
+  if (item.type === "FEAT") {
+    texture = PIXI.Texture.from(`assets/feat.png`);
+  } else {
+    texture = PIXI.Texture.from(`assets/story.png`);
+  }
+  callback(texture ?? PIXI.Texture.WHITE);
+}
+
 function renderTexture(item, callback) {
+  if (!RENDER_ITEM) {
+    renderDefaultTexture(item, callback);
+    return;
+  }
+
   let url = `/render/${item.jira}`;
   if (_team && _team.sprint) {
     url += "?" + new URLSearchParams({ sprint: _team.sprint }).toString();
@@ -94,13 +114,7 @@ function renderTexture(item, callback) {
       const texture = new PIXI.Texture(base);
       callback(texture);
     } else {
-      let texture = null;
-      if (item.type === "FEAT") {
-        texture = PIXI.Texture.from(`assets/feat.png`);
-      } else {
-        texture = PIXI.Texture.from(`assets/story.png`);
-      }
-      callback(texture ?? PIXI.Texture.WHITE);
+      renderDefaultTexture(item, callback);
     }
   });
 }
@@ -117,6 +131,8 @@ function getSpeed() {
 }
 
 function setupReview(app, data, bgTexture, bgPrevTexture=null, callback) {
+  DEMO_ACTIVE = true;
+  ANIMATE_SPEED = ANIMATE_SPEED < 0 ? _animateSpeedParam : ANIMATE_SPEED;
   app.stage.interactive = true;
   app.stage.hitArea = app.screen;
 
@@ -143,6 +159,14 @@ function setupReview(app, data, bgTexture, bgPrevTexture=null, callback) {
   if (PIXI.Assets.cache.get(`assets/spritesheet/pippi_run.json`)) {
     startReview(app, data, callback);
   } else {
+    if (_team.members && _team.loadIcons) {
+      Object.keys(_team.members).forEach((memberID) => {
+        let data = lookupSprite(memberID);
+        if (data.character && data.character.startsWith("icon_")) {
+          ASSETS.push(`assets/${data.character}.png`);
+        }
+      });
+    }
     PIXI.Assets.load(ASSETS).then(() => {
       startReview(app, data, callback);
     });
@@ -181,10 +205,10 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     frames = character + "_run";
   }
   let animations = null;
-  let asset;
+  let asset = null;
   if (frames.endsWith("_run")) {
     asset = PIXI.Assets.cache.get(`assets/spritesheet/${character}_run.json`);
-  } else {
+  } else if (!character.startsWith("icon_") && frames !== "icon") {
     asset = PIXI.Assets.cache.get(`assets/spritesheet/${character}.json`);
   }
 
@@ -196,22 +220,35 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     pippi = PIXI.AnimatedSprite.fromFrames(animations[frames]);
     animation = pippi;
   } else {
+    let charScale = 0.5;
     texture = PIXI.Texture.from(`assets/${character}.png`);
     if (!texture) {
-      character = "default";
+      charScale = 1;
+      texture = PIXI.Texture.from(`assets/pippi.png`);
+    }
+
+    // TODO - support different attack actions
+    asset = PIXI.Assets.cache.get(`assets/spritesheet/attack.json`);
+    if (asset) {
+      charScale = (data && data.scale !== undefined) ? data.scale : charScale;
+      character = "attack";
+      animations = asset.data.animations;
+      animation = PIXI.AnimatedSprite.fromFrames(animations["attack_sprite"]);
+      const charSprite = new PIXI.Sprite(texture);
+      pippi = new PIXI.Container();
+      charSprite.x += data.xOffset ?? -7;
+      charSprite.y += data.yOffset ?? 0;
+      charSprite.scale.x = charScale;
+      charSprite.scale.y = charScale;
+      pippi.addChild(charSprite);
+      pippi.addChild(animation);
+    } else {
+      character = "pippi";
       applyAffects = true;
       const frames = [];
       texture = PIXI.Texture.from(`assets/pippi.png`);
       frames.push(texture);
       pippi = new PIXI.AnimatedSprite(frames);
-    } else {
-      asset = PIXI.Assets.cache.get(`assets/spritesheet/attack.json`);
-      animations = asset.data.animations;
-      animation = PIXI.AnimatedSprite.fromFrames(animations["attack_sprite"]);
-      const charSprite = new PIXI.Sprite(texture);
-      pippi = new PIXI.Container();
-      pippi.addChild(charSprite);
-      pippi.addChild(animation);
     }
   }
 
@@ -220,14 +257,25 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     return;
   }
 
-  const factor = getSpriteFactor(character);
+  const factor = getSpriteFactor(character, character !== "attack" ? data : null);
   const bgWidth = app.screen.width;
   const bgHeight = app.screen.height;
 
   // Setup animation at 6 fps.
   if (animation) {
-    animation.animationSpeed = 1 / 6;
-  }  
+    let speed = 1;
+    if (data && data.item) {
+      const est = data.item.estimate ?? 1;
+      if (est >= 8) {
+        speed = 4;
+      } else if (est >= 5) {
+        speed = 3;
+      } else if (est >= 3) {
+        speed = 2;
+      }
+    }
+    animation.animationSpeed = speed / 6;
+  }
   pippi.position.set(50, bgHeight - 180);
   pippi.scale.x = factor.scale * factor.dir;
   pippi.scale.y = factor.scale;

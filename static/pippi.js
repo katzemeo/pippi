@@ -17,7 +17,9 @@ var ANIMATE_SPEED = 1;
 var SHOW_ALL = false;
 var SHOW_ADDED = true;
 var SHOW_STORIES = true;
+var COMPLETED_ONLY = false;
 var DEMO_ACTIVE = false;
+var RENDER_ITEM = false;
 
 var _animateSpeedParam = ANIMATE_SPEED;
 
@@ -35,6 +37,10 @@ window.onload = function () {
   if (url.searchParams.has("show_stories")) {
     SHOW_STORIES = url.searchParams.get("show_stories") !== "false";
   }
+  if (url.searchParams.has("show_completed")) {
+    COMPLETED_ONLY = url.searchParams.get("show_completed") !== "false";
+  }
+
   if (url.searchParams.has("speed")) {
     _animateSpeedParam = Number(url.searchParams.get("speed"));
     if (isNaN(_animateSpeedParam)) {
@@ -291,7 +297,6 @@ function getNextSprint() {
 function showReviewCanvas(showNext) {
   const pixiParent = document.getElementById("pixi");
   if (pixiParent) {
-    DEMO_ACTIVE = true;
     let callback = function() {
       const nextSprint = getNextSprint();
       if (nextSprint && showNext) {
@@ -310,6 +315,10 @@ function toggleShowAdded() {
 
 function toggleShowStories() {
   SHOW_STORIES = !SHOW_STORIES;
+}
+
+function toggleShowCompleted() {
+  COMPLETED_ONLY = !COMPLETED_ONLY;
 }
 
 function closePopupMenu() {
@@ -355,7 +364,8 @@ function buildDemoPopupMenu(menu) {
 
   // Show demo options
   let toggles = [ {caption: `Show Added`, method: `toggleShowAdded()`, value: SHOW_ADDED},
-    {caption: `Show Stories`, method: `toggleShowStories()`, value: SHOW_STORIES} ];
+    {caption: `Show Stories`, method: `toggleShowStories()`, value: SHOW_STORIES},
+    {caption: `Completed Only`, method: `toggleShowCompleted()`, value: COMPLETED_ONLY} ];
   for (let i=0; i<toggles.length; i++) {
     mi = document.createElement("a");
     mi.href = "#";

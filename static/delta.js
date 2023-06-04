@@ -2,8 +2,8 @@ function animateDelta(app, data, callback) {
   const nextFn = function() {
     animateUpdatedItems(app, data, function() {
       const nextSprint = getNextSprint();
-      if (callback && nextSprint) {
-        showMessage(app, `NEXT: ${nextSprint}`, function() { loadTeamItems(_teamName ?? "MY_TEAM", nextSprint); });
+      if (callback && nextSprint && !data.autoClose) {
+        showMessage(app, `NEXT: ${nextSprint}`, SHOW_ALL ? null : function() { loadTeamItems(_teamName ?? "MY_TEAM", nextSprint); });
       } else {
         showMessage(app, `Thank You!!!`);
       }
@@ -42,7 +42,7 @@ function animateAddedItems(app, data, callback) {
     let feats = [];
     if (data.sprint === "BASE") {
       data.items.forEach((feat) => {
-        if (feat.status !== "BACKLOG" && feat.status !== "PENDING") {
+        if (feat.status !== "BACKLOG" && feat.status !== "PENDING" && (!COMPLETED_ONLY || feat.status === "COMPLETED")) {
           feats.push({item: feat});
         }
       });
@@ -51,31 +51,33 @@ function animateAddedItems(app, data, callback) {
         let item = findItemByJira(id);
         if (item) {
           if (item.type === "STORY" || item.type === "SPIKE") {
-            stories.push({item: item});
+            if ((!COMPLETED_ONLY || item.status === "COMPLETED")) {
+              stories.push({item: item});
+            }
           } else if (item.type === "FEAT") {
-            if (item.status !== "BACKLOG" && item.status !== "PENDING") {
+            if (item.status !== "BACKLOG" && item.status !== "PENDING" && (!COMPLETED_ONLY || item.status === "COMPLETED")) {
               feats.push({item: item});
             }
           }
         } else {
           console.log(`Unknown new item ${id}!`);
         }
-      });  
+      });
     }
 
     sortByProgress(stories);
     sortByProgress(feats);
 
     if (SHOW_STORIES) {
-      app.context.type = "Stories Added";
+      app.context.type = `New Stories ${COMPLETED_ONLY ? "Completed" : "Added"}`;
       app.context.total = stories.length;
       cycleAddedItems(app, stories, function() {
-        app.context.type = "Feats Added";
+        app.context.type = `New Feats ${COMPLETED_ONLY ? "Closed" : "Added"}`;
         app.context.total = feats.length;
         cycleAddedItems(app, feats, callback);
-      });  
+      });
     } else {
-      app.context.type = "Feats Added";
+      app.context.type = `New Feats ${COMPLETED_ONLY ? "Closed" : "Added"}`;
       app.context.total = feats.length;
       cycleAddedItems(app, feats, callback);
     }
@@ -93,9 +95,13 @@ function animateUpdatedItems(app, data, callback) {
       let updated = data.delta.updated[id];
       if (item) {
         if (item.type === "STORY" || item.type === "SPIKE") {
-          stories.push({item: item, diffs: updated.diffs });
+          if ((!COMPLETED_ONLY || item.status === "COMPLETED")) {
+            stories.push({item: item, diffs: updated.diffs });
+          }
         } else if (item.type === "FEAT") {
-          feats.push({item: item, diffs: updated.diffs });
+          if ((!COMPLETED_ONLY || item.status === "COMPLETED")) {
+            feats.push({item: item, diffs: updated.diffs });
+          }
         }
       } else {
         console.log(`Unknown updated item ${id}!`);
@@ -105,15 +111,15 @@ function animateUpdatedItems(app, data, callback) {
     sortByProgress(stories);
     sortByProgress(feats);
     if (SHOW_STORIES) {
-      app.context.type = "Stories Updated";
+      app.context.type = `Stories ${COMPLETED_ONLY ? "Completed" : "Updated"}`;
       app.context.total = stories.length;
       cycleMessages(app, stories, function() {
-        app.context.type = "Feats Updated";
+        app.context.type = `Feats ${COMPLETED_ONLY ? "Closed" : "Updated"}`;
         app.context.total = feats.length;      
         cycleMessages(app, feats, callback);
       });
     } else {
-      app.context.type = "Feats Updated";
+      app.context.type = `Feats ${COMPLETED_ONLY ? "Closed" : "Updated"}`;
       app.context.total = feats.length;      
       cycleMessages(app, feats, callback);
     }
@@ -279,14 +285,33 @@ function lookupSprite(memberID) {
   if (_team.members && memberID) {
     const member = _team.members[memberID];
     if (member) {
-      sprite.character = member.icon;
+      if (member.icon) {
+        sprite.character = member.icon;
+        sprite.frames = sprite.character +"_sprite";
+      } else if (_team.loadIcons) {
+        let character = member.name.replaceAll(' ', '');
+        if (character.indexOf(".") > 0) {
+          character = character.substring(0, character.indexOf("."));
+        }
+        if (character.indexOf("/") > 0) {
+          character = character.substring(0, character.indexOf("/"));
+        }
+        sprite.character = `icon_${character}`;
+        sprite.frames = "icon";
+      }
+
+      // Support overriding of sprite options
+      if (member.animate) {
+        Object.assign(sprite, member.animate);
+      }
     }
   }
+
   if (!sprite.character) {
-    sprite.character = "toni";
-    sprite.frames = "toni_sprite-weap";
-  } else {
-    sprite.frames = sprite.character +"_sprite";
+    //sprite.character = "toni";
+    //sprite.frames = "toni_sprite-weap";
+    sprite.character = "pippi";
+    sprite.frames = "icon";
   }
   return sprite;
 }

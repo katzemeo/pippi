@@ -97,7 +97,7 @@ function buildSprintPopupMenu(menu) {
   mi.className = className;
   mi.href = "#";
   mi.target = "pippi";
-  mi.setAttribute("onclick", `openPIPPI(window, true, false, false, 1, true); return false;`);
+  mi.setAttribute("onclick", `openPIPPI(window, true, true, true, true, ANIMATE_SPEED, true); return false;`);
   mi.innerHTML = `👏 PI Demo 🎉`;
   menu.appendChild(mi);
 

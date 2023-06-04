@@ -5,6 +5,7 @@ const JSON_HEADERS = {
   "Content-Type": "application/json",
 };
 
+var ANIMATE_SPEED = 2;
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
@@ -1800,15 +1801,24 @@ function updateCanvasSelection(canvas=_canvasMap) {
   }
 }
 
-function openPIPPI(parent=window, showAll=false, showAdded=true, showStories=true, speed=2, fullscreen=false) {
-  const url = `/public/pippi.html?speed=${speed}&show_all=${showAll}&show_added=${showAdded}&show_stories=${showStories}&sprint=${encodeURIComponent(_team.sprint)}`;
+function openPIPPI(parent=window, showAll=false, showAdded=true, showStories=true, showCompleted=true, speed=ANIMATE_SPEED, fullscreen=false) {
+  if (speed <= 0) {
+    speed = _animateSpeedParam;
+  }
+  const url = `/public/pippi.html?speed=${speed}&show_all=${showAll}&show_added=${showAdded}&show_stories=${showStories}&show_completed=${showCompleted}&sprint=${encodeURIComponent(_team.sprint)}`;
   let win;
   if (fullscreen) {
     win = parent.open(url, "pippi", `directories=no,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,resizable=yes,copyhistory=no,fullscreen=yes`);
     if (win.outerWidth < screen.width || win.outerHeight < screen.height) {
-      win.moveTo(0,0);
-      //win.resizeTo(screen.availWidth, screen.availHeight);
-      win.resizeTo(screen.width, screen.height);
+      let width = screen.width;
+      let height = width * 0.6;
+      if (height > screen.height) {
+        height = screen.height;
+      }
+      const top = (screen.height - height) / 2;
+      const left = (screen.width - width) / 2;
+      win.moveTo(left, top);
+      win.resizeTo(screen.width, height);
     }
   } else {
     const width = 1024;

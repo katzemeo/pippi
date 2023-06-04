@@ -1,7 +1,7 @@
 const ASSETS = [
   "assets/story.png",
   "assets/feat.png",
-  "assets/pippi.png",  
+  "assets/pippi.png",
   "assets/spritesheet/pippi_run.json",
   /*"assets/spritesheet/toni.json",
   "assets/spritesheet/shay.json",
@@ -20,7 +20,7 @@ var _pippiScale = 2.2;
 var _pippiXOffset = 200;
 var _pippiYOffset = 578;
 
-function getSpriteFactor(character) {
+function getSpriteFactor(character, data) {
   let scale = 1;
   let xOffset = -20;
   let yOffset = 0;
@@ -35,24 +35,22 @@ function getSpriteFactor(character) {
       yOffset = 500;
       if (character === "seru" || character === "radi") {
         dir = -1;
-        if (character === "seru") {
-          xOffset = 150;
-        }
+        xOffset = 150;
       } else if (character === "shay" || character === "defe") {
         xOffset = -50;
       } else if (character === "toni") {
         xOffset = -40;
       } else if (character === "attack") {
-        xOffset = -40;
+        xOffset = 20;
       }
     }
   }
 
   return {
-    scale: scale,
-    xOffset: xOffset,
-    yOffset: yOffset,
-    dir: dir
+    scale: (data && data.scale !== undefined) ? data.scale : scale,
+    xOffset: (data && data.xOffset !== undefined) ? data.xOffset : xOffset,
+    yOffset: (data && data.yOffset !== undefined) ? data.yOffset : yOffset,
+    dir: (data && data.dir !== undefined) ? data.dir : dir
   };
 }
 
