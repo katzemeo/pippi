@@ -287,7 +287,12 @@ function lookupSprite(memberID) {
     if (member) {
       if (member.icon) {
         sprite.character = member.icon;
-        sprite.frames = sprite.character +"_sprite";
+        if (member.animate) {
+          sprite.frames = (member.animate.attack ?? sprite.character) +"_sprite";
+          Object.assign(sprite, member.animate);
+        } else {
+          sprite.frames = sprite.character +"_sprite";
+        }
       } else if (_team.loadIcons) {
         let character = member.name.replaceAll(' ', '');
         if (character.indexOf(".") > 0) {
@@ -298,11 +303,6 @@ function lookupSprite(memberID) {
         }
         sprite.character = `icon_${character}`;
         sprite.frames = "icon";
-      }
-
-      // Support overriding of sprite options
-      if (member.animate) {
-        Object.assign(sprite, member.animate);
       }
     }
   }

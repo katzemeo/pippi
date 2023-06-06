@@ -220,20 +220,21 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     pippi = PIXI.AnimatedSprite.fromFrames(animations[frames]);
     animation = pippi;
   } else {
-    let charScale = 0.5;
+    let charScale = 1;
     texture = PIXI.Texture.from(`assets/${character}.png`);
     if (!texture) {
-      charScale = 1;
       texture = PIXI.Texture.from(`assets/pippi.png`);
     }
 
-    // TODO - support different attack actions
-    asset = PIXI.Assets.cache.get(`assets/spritesheet/attack.json`);
+    character = "custom";
+    // Lookup custom attack animation or use default
+    const attack = data.attack ?? "attack";
+    asset = PIXI.Assets.cache.get(`assets/spritesheet/${attack}.json`);
     if (asset) {
+      frames = data.frames ?? `${attack}_sprite`;
       charScale = (data && data.scale !== undefined) ? data.scale : charScale;
-      character = "attack";
       animations = asset.data.animations;
-      animation = PIXI.AnimatedSprite.fromFrames(animations["attack_sprite"]);
+      animation = PIXI.AnimatedSprite.fromFrames(animations[frames]);
       const charSprite = new PIXI.Sprite(texture);
       pippi = new PIXI.Container();
       charSprite.x += data.xOffset ?? -7;
@@ -243,12 +244,10 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
       pippi.addChild(charSprite);
       pippi.addChild(animation);
     } else {
-      character = "pippi";
       applyAffects = true;
-      const frames = [];
-      texture = PIXI.Texture.from(`assets/pippi.png`);
-      frames.push(texture);
-      pippi = new PIXI.AnimatedSprite(frames);
+
+
+      pippi = new PIXI.Sprite(texture);
     }
   }
 
@@ -257,7 +256,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     return;
   }
 
-  const factor = getSpriteFactor(character, character !== "attack" ? data : null);
+  const factor = getSpriteFactor(character, character !== "custom" ? data : null);
   const bgWidth = app.screen.width;
   const bgHeight = app.screen.height;
 
@@ -276,6 +275,8 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     }
     animation.animationSpeed = speed / 6;
   }
+
+  //console.log(factor);
   pippi.position.set(50, bgHeight - 180);
   pippi.scale.x = factor.scale * factor.dir;
   pippi.scale.y = factor.scale;

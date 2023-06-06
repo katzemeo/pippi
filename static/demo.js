@@ -102,6 +102,11 @@ function unloadJS(app) {
 
 function stopAnimation() {
   if (_app) {
+    console.log(`Stopping animation and destroying app...`);
+    const cancelled = cancelQueue();
+    if (cancelled) {
+      console.log(`Cancelled queue, event=`, event);
+    }
     stopAndDestroy(_app);
     _app = null;
   }

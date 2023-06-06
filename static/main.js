@@ -1385,6 +1385,137 @@ function renderItems() {
   computeStats();
 }
 
+var _summaryItems = [];
+var _summarySortKey = null;
+var _summarySortOrder = {};
+
+function showSummaryItems() {
+  const options = { backdrop: "static" };
+  const modal = new bootstrap.Modal(document.getElementById('itemSummary'), options);
+
+  const label = document.getElementById("summaryItemsLabel");
+  removeChildren(label);
+
+  _summaryItems = computeSummaryItems();
+  const totalEstimate = _summaryItems.reduce((sum, i) => sum + convertToSP(Number(i["estimate"] ?? 0), i["unit"]), 0.0);
+  const totalEffort = _summaryItems.reduce((sum, i) => sum + convertToSP(Number(i["computed_effort"] ?? 0), i["unit"]), 0.0);
+
+  let headerSuffix = `<div class="col text-end">Total Effort: ${totalEffort ?? "Unknown"} SP</div>`;
+  let headerContent = `<i class="material-icons">analytics</i> PI Summary (Total Estimate: ${totalEstimate ?? ""} SP)`;
+  label.innerHTML = `<div class="container mx-0"><div class="d-flex"><div class="col-auto">${headerContent}</div>${headerSuffix}</div>`;
+ 
+  const statusEl = document.getElementById("summaryItemLabel");
+  removeChildren(statusEl);
+
+  let diffPct = "";
+  if (totalEffort > 0 && totalEstimate > 0) {
+    const computed_diff = totalEffort - totalEstimate;
+    if (computed_diff) {
+      const diff_pct = computed_diff * 100 / totalEstimate;
+      diffPct = `${PCT(diff_pct)}% (${computed_diff} SP)`;
+    }
+  }
+  statusEl.innerHTML = `Total Difference: ${diffPct}`;
+
+  renderSummaryItems();
+
+  modal.show();
+}
+
+function renderSummaryItems() {
+  const mytable = document.getElementById("summary_items");
+  removeChildren(mytable);
+
+  const items = filterSummaryItems();
+  let n = 1;
+  let row;
+  let cell;
+  items.forEach(item => {
+    row = document.createElement("tr");
+    cell = renderCell(row, n);
+    cell.className = "text-muted";
+
+    cell = renderCell(row, createIssueLink(item));
+    if (item.parent_jira) {
+      cell.title = `Parent: ${item.parent_jira}`;
+    }
+
+    cell = renderCell(row, ESC(item.summary));
+    if (item.description) {
+      cell.title = item.description;
+    }
+
+    cell = renderCell(row, item.type);
+
+    cell = renderCell(row, item.status);
+    if (item.status === "COMPLETED") {
+      cell.style = GREEN;
+    } else if (item.status === "INPROGRESS" || item.status === "PENDING") {
+      cell.style = AMBER;
+    } else if (item.status === "READY") {
+      cell.style = BLUE;
+    } else if (item.status === "BLOCKED") {
+      cell.style = RED;
+      hasBlockers = true;
+    }
+
+    let estimate = 0;
+    if (item.estimate) {
+      estimate = convertToSP(item.estimate, item.unit);
+      cell = renderCell(row, EFF(estimate));
+    } else {
+      cell = renderCell(row, "");
+    }
+
+    const effort = convertToSP(item.computed_effort, item.unit);
+    cell = renderCell(row, EFF(effort));
+
+    // Re-compute
+    if (effort > 0 && estimate > 0) {
+      item.computed_diff = effort - estimate;
+      if (item.computed_diff) {
+        const diff_pct = item.computed_diff * 100 / estimate;
+        cell = renderCell(row, `${PCT(diff_pct)}% (${item.computed_diff} SP)`);
+      } else {
+        cell = renderCell(row, "");
+      }
+    } else {
+      delete item.computed_diff;
+      cell = renderCell(row, "");
+    }
+
+    mytable.appendChild(row);
+    n++;
+  });
+}
+
+function computeSummaryItems() {
+  return _items;
+}
+
+function filterSummaryItems() {
+  const sortKey = _summarySortKey;
+  var order = _summarySortOrder[sortKey] || 1;
+  var items = _summaryItems;
+
+  if (sortKey) {
+    items = items.slice().sort(function (a, b) {
+      a = a[sortKey];
+      b = b[sortKey];
+      if (!a) a = "";
+      if (!b) b = "";
+      return (a === b ? 0 : a > b ? 1 : -1) * order;
+    });
+  }
+  return items;
+}
+
+function sortSummaryBy(key) {
+  _summarySortKey = key;
+  _summarySortOrder[key] = (!_summarySortOrder[key] ? 1 : _summarySortOrder[key]) * -1;
+  renderSummaryItems();
+}
+
 var _childrenItems = [];
 var _childrenFilterKey = null;
 var _childrenSortKey = null;
@@ -1427,6 +1558,7 @@ function showChildren(parentJira) {
   let remainingSP = `<div class="col text-end">Remaining: ${parent.remaining ?? "Unknown"} ${parent.unit ?? "SP"}</div>`;
   let headerContent = createIssueLink(parent, true, `(${parent.t_shirt_size ?? ""}: ${parent.computed_effort ?? ""} ${parent.unit ?? "SP"}) - ${parent.summary}`);
   label.innerHTML = `<div class="container mx-0"><div class="d-flex"><div class="col-auto">${headerContent}</div>${remainingSP}</div>`;
+  
   const statusEl = document.getElementById("parentItemLabel");
   removeChildren(statusEl);
 
@@ -1515,6 +1647,13 @@ function renderChildrenItems() {
 
     if (item.assignee) {
       let assigneeName = lookupTeamMember(item.assignee, true);
+      if (_team.members) {
+        const m = _team.members[item.assignee];
+        if (m && m.icon) {
+          assigneeName = `<img src="${lookupMemberIcon(m)}" alt="member icon" width="24" height="24"/> ${assigneeName}`;
+        }
+      }
+
       cell = renderCell(row, assigneeName);
       cell.title = "Assignee: " + item.assignee;
       item.computed_unassigned = assigneeName;
@@ -1805,7 +1944,7 @@ function openPIPPI(parent=window, showAll=false, showAdded=true, showStories=tru
   if (speed <= 0) {
     speed = _animateSpeedParam;
   }
-  const url = `/public/pippi.html?speed=${speed}&show_all=${showAll}&show_added=${showAdded}&show_stories=${showStories}&show_completed=${showCompleted}&sprint=${encodeURIComponent(_team.sprint)}`;
+  const url = `/public/pippi.html?speed=${speed}&show_all=${showAll}&show_added=${showAdded}&show_stories=${showStories}&show_completed=${showCompleted}&team=${encodeURIComponent(_team.name)}&sprint=${encodeURIComponent(_team.sprint)}`;
   let win;
   if (fullscreen) {
     win = parent.open(url, "pippi", `directories=no,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,resizable=yes,copyhistory=no,fullscreen=yes`);

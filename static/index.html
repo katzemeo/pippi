@@ -260,6 +260,49 @@
     </div>
   </div>
 
+  <!-- Modal: PI Summary dialog -->
+  <div class="modal fade" id="itemSummary" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="itemSummaryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" style="width: 100%" id="summaryItemsLabel"><i class="material-icons">analytics</i> PI Summary</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="container" style="overflow-y: auto; min-height: 80vh; max-height: 80vh; max-width: 100%;">
+            <table class="table table-striped align-middle table-sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th onclick="sortSummaryBy('jira')">ID</th>
+                  <th onclick="sortSummaryBy('summary')">Summary</th>
+                  <th onclick="sortSummaryBy('type')">Type</th>
+                  <th onclick="sortSummaryBy('status')">Status</th>
+                  <th onclick="sortSummaryBy('estimate')">Estimate SP</th>
+                  <th onclick="sortSummaryBy('computed_effort')">Effort SP</th>
+                  <th onclick="sortSummaryBy('computed_diff')">Difference</th>
+                </tr>
+              </thead>
+              <tbody id="summary_items" />
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer py-1">
+          <div class="container">
+            <div class="d-flex">
+              <div class="col">
+                <h5 id="summaryItemLabel">PI Status</h5>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Canvas -->
   <div id="canvas-div" class="container" style="max-width: 100%; display: none;">
     <div class="row">
