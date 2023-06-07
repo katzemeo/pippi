@@ -66,14 +66,30 @@ function playReview(canvas, data, callback) {
   app.stage.scale.x = scale;
   app.stage.scale.y = scale;
 
-  let image = new Image();
-  image.onload = function() {
-    const base = new PIXI.BaseTexture(image);
-    const texture = new PIXI.Texture(base);
-    setupReview(app, data, texture, null, callback)
-  };
-  // TODO - load sprint charts
-  image.src = `/public/assets/spritesheet/pippi_run.png`;
+  // Load sprint charts (if any)
+  const chart1 = data.chart1;
+  if (chart1) {
+    let image1 = new Image();
+    image1.onload = function() {
+      const base1 = new PIXI.BaseTexture(image1);
+      const texture1 = new PIXI.Texture(base1);
+      const chart2 = data.chart2;
+      if (chart2) {
+        let image2 = new Image();
+        image2.onload = function() {
+          const base2 = new PIXI.BaseTexture(image2);
+          const texture2 = new PIXI.Texture(base2);
+          setupReview(app, data, texture1, texture2, callback);
+        };
+        image2.src = `/render/${encodeURIComponent(chart2)}?team=${encodeURIComponent(data.name)}&sprint=NONE`;
+      } else {
+        setupReview(app, data, texture1, null, callback);
+      }
+    };
+    image1.src = `/render/${encodeURIComponent(chart1)}?team=${encodeURIComponent(data.name)}&sprint=NONE`;
+  } else {
+    setupReview(app, data, null, null, callback);
+  }
 
   return app;
 }
@@ -189,6 +205,12 @@ function positionSprite(pippi, sprite, factor) {
   sprite.position.set(pippi.x + pippi.width - factor.xOffset, pippi.y - sprite.height * 0.2);
 }
 
+function createAnimatedSprite(name, asset, frames) {
+  console.log(`createAnimatedSprite("${name}", "${frames}")`);
+  let animations = asset.data.animations;
+  return PIXI.AnimatedSprite.fromFrames(animations[frames]);
+}
+
 function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   let character = "pippi";
   let frames = null;
@@ -204,7 +226,6 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   if (!frames) {
     frames = character + "_run";
   }
-  let animations = null;
   let asset = null;
   if (frames.endsWith("_run")) {
     asset = PIXI.Assets.cache.get(`assets/spritesheet/${character}_run.json`);
@@ -216,8 +237,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   let animation = null;
   let applyAffects = false;
   if (asset) {
-    animations = asset.data.animations;
-    pippi = PIXI.AnimatedSprite.fromFrames(animations[frames]);
+    pippi = createAnimatedSprite(character, asset, frames);
     animation = pippi;
   } else {
     let charScale = 1;
@@ -231,22 +251,18 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     const attack = data.attack ?? "attack";
     asset = PIXI.Assets.cache.get(`assets/spritesheet/${attack}.json`);
     if (asset) {
-      frames = data.frames ?? `${attack}_sprite`;
-      charScale = (data && data.scale !== undefined) ? data.scale : charScale;
-      animations = asset.data.animations;
-      animation = PIXI.AnimatedSprite.fromFrames(animations[frames]);
+      charScale = (data.scale !== undefined) ? data.scale : charScale;
+      animation = createAnimatedSprite(attack, asset, `${attack}_sprite`);
       const charSprite = new PIXI.Sprite(texture);
       pippi = new PIXI.Container();
-      charSprite.x += data.xOffset ?? -7;
-      charSprite.y += data.yOffset ?? 0;
-      charSprite.scale.x = charScale;
+      charSprite.x += (data.xOffset !== undefined) ? data.xOffset : -7;
+      charSprite.y += (data.yOffset !== undefined) ? data.yOffset : 0;
+      charSprite.scale.x = charScale * (data.dir ?? 1);
       charSprite.scale.y = charScale;
       pippi.addChild(charSprite);
       pippi.addChild(animation);
     } else {
       applyAffects = true;
-
-
       pippi = new PIXI.Sprite(texture);
     }
   }

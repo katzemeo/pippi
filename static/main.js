@@ -336,6 +336,8 @@ function processTeamItems(data) {
   team.sprint = data.sprint ?? team.sprint;
   team.delta = data.delta;
   team.date = data.date ?? team.date;
+  team.chart1 = data.chart1;
+  team.chart2 = data.chart2;
   if (data.recompute && team.items) {
     team.items.forEach((feat) => {
       computeTotalSP(feat);

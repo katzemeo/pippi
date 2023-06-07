@@ -151,6 +151,8 @@ function processTeamItems(data) {
   team.sprint = data.sprint ?? team.sprint;
   team.delta = data.delta;
   team.date = data.date ?? team.date;
+  team.chart1 = data.chart1;
+  team.chart2 = data.chart2;
   processTeamMembers(data, team);
 
   if (!_teams[team.name] || team.squad !== _teams[team.name].squad) {

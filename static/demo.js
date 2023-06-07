@@ -3,13 +3,8 @@ const ASSETS = [
   "assets/feat.png",
   "assets/pippi.png",
   "assets/spritesheet/pippi_run.json",
-  /*"assets/spritesheet/toni.json",
-  "assets/spritesheet/shay.json",
-  "assets/spritesheet/seru.json",
-  "assets/spritesheet/radi.json",
-  "assets/spritesheet/defe.json",
-  "assets/spritesheet/cricut.json",*/
-  "assets/spritesheet/attack.json"
+  "assets/spritesheet/attack.json",
+  "assets/spritesheet/broom.json"
 ];
 
 var _pixiJSLoaded = false;

@@ -12,13 +12,20 @@ async function renderItem(teamName: string, sprint: string|null = null, itemID: 
       sprint = "BASE";
     }
 
+    let imagePath: any;
     let fileName = `${itemID}.png`;
-    image = join(teamName, sprint, fileName);
-    let imagePath = join(teamDir, sprint, fileName);
+    if (sprint === "NONE") {
+      image = join(teamName, fileName);
+      imagePath = join(teamDir, fileName);
+    } else {
+      image = join(teamName, sprint, fileName);
+      imagePath = join(teamDir, sprint, fileName);
+    }
     try {
       const file = await Deno.open(imagePath);
       Deno.close(file.rid);
     } catch (error) {
+      //console.log(error);
       if (env.RENDER_OUTPUT === "true") {
         ensureFile(imagePath);
       }
