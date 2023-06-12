@@ -2,8 +2,13 @@ function animateDelta(app, data, callback) {
   const nextFn = function() {
     animateUpdatedItems(app, data, function() {
       const nextSprint = getNextSprint();
-      if (callback && nextSprint && !data.autoClose) {
-        showMessage(app, `NEXT: ${nextSprint}`, SHOW_ALL ? null : function() { loadTeamItems(_teamName ?? "MY_TEAM", nextSprint); });
+      //console.log(`animateUpdatedItems() - nextSprint=${nextSprint}`, data);
+      if (nextSprint && (SHOW_ALL || !data.autoClose)) {
+        const fn = function() { loadTeamItems(_teamName ?? "MY_TEAM", nextSprint); };
+        if (!callback) {
+          callback = fn;
+        }
+        showMessage(app, `NEXT: ${nextSprint}`, SHOW_ALL ? null : fn);
       } else {
         showMessage(app, `Thank You!!!`);
       }
@@ -50,6 +55,7 @@ function animateAddedItems(app, data, callback) {
       Object.keys(data.delta.added).forEach((id) => {
         let item = findItemByJira(id);
         if (item) {
+          item.new = true;
           if (item.type === "STORY" || item.type === "SPIKE") {
             if ((!COMPLETED_ONLY || item.status === "COMPLETED")) {
               stories.push({item: item});
@@ -223,23 +229,41 @@ function cycleAddedItems(app, messages, callback) {
       }, { forward: true });
     } else if (status === "COMPLETED") {
       options = { fill: ['#ffffff', '#008800'], stroke: '#001a33'};
+      let data;
       if (m.item.type === "FEAT") {
         writeMessage(`${lookupTeamMember(m.item.assignee)} CLOSED (NEW) ${m.item.jira} - ${m.item.summary}`, true);
+        const spritesMap = getItemAssignees(m.item);
+        const assignees = Object.keys(spritesMap);
+        if (assignees.length > 1) {
+          data = { assignees: spritesMap };
+        } else {
+          if (assignees.length > 1) {
+            data = spritesMap[spritesMap[assignees[0]]];
+          } else {
+            data = lookupSprite(m.item.assignee);
+          }
+        }
       } else {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ COMPLETED (NEW) ${m.item.jira} - ${m.item.summary}`, true);
+        data = lookupSprite(m.item.assignee);
       }
-      showMessage(app, `✱ ${m.item.jira} ✔ ${m.item.summary}`, null, options);
-      let data = lookupSprite(m.item.assignee);
+
+      showMessage(app, `✱ ${m.item.jira} ✔ ${m.item.summary}`, null, options);      
       data.multi = 1;
       data.filter = false;
       data.item = m.item;
       const itemRendered = function(texture) {
-        data.itemTexture = texture
-        animateSPSprint(app, data, function() {
+        data.itemTexture = texture;
+        const fn = function() {
           let symbols = getCompletedSymbols(m.item, true);
           showMessage(app, `${m.item.type} ✱ ${m.item.jira} ✔ COMPLETED!\n${symbols}`, null, options);
           queueFunction(() => { cycleAddedItems(app, messages, callback); }, 3000 / getSpeed());
-        }, { drop: true });
+        };
+        if (data.assignees) {
+          animateGroupSPSprint(app, data, fn, { drop: true });
+        } else {
+          animateSPSprint(app, data, fn, { drop: true });
+        }
       }
       renderTexture(m.item, itemRendered);
     } else {
@@ -254,6 +278,7 @@ function cycleAddedItems(app, messages, callback) {
         options = { fill: ['#440000', '#ff0000'], stroke: '#001a33'};
       } else if (status === "PENDING" || status === "BACKLOG") {
         symbol = "✍";
+        options = { fill: ['#9A9790'], stroke: '#000000'};
       } else if (status === "INPROGRESS") {
         symbol = "⌛";
       }
@@ -308,8 +333,6 @@ function lookupSprite(memberID) {
   }
 
   if (!sprite.character) {
-    //sprite.character = "toni";
-    //sprite.frames = "toni_sprite-weap";
     sprite.character = "pippi";
     sprite.frames = "icon";
   }
@@ -328,6 +351,9 @@ function cycleMessages(app, messages, callback) {
     for (let i=0; i < m.diffs.length; i++) {
       if (m.diffs[i].key === "status") {
         status = m.diffs[i].new;
+        if (m.diffs[i].old === "BLOCKED") {
+          m.item.unblocked = true;
+        }
         break;
       }
     }
@@ -339,23 +365,41 @@ function cycleMessages(app, messages, callback) {
       queueFunction(() => { cycleMessages(app, messages, callback); }, 1000 / getSpeed());
     } else if (status === "COMPLETED") {
       options = { fill: ['#ffffff', '#008800'], stroke: '#001a33'};
+      let data;
       if (m.item.type === "FEAT") {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ CLOSED ${m.item.jira} - ${m.item.summary}`, true);
+        const spritesMap = getItemAssignees(m.item);
+        const assignees = Object.keys(spritesMap);
+        if (assignees.length > 1) {
+          data = { assignees: spritesMap };
+        } else {
+          if (assignees.length > 1) {
+            data = spritesMap[spritesMap[assignees[0]]];
+          } else {
+            data = lookupSprite(m.item.assignee);
+          }
+        }
       } else {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ COMPLETED ${m.item.jira} - ${m.item.summary}`, true);
+        data = lookupSprite(m.item.assignee);
       }
+
       showMessage(app, `${m.item.jira} ✔ ${m.item.summary}`, null, options);
-      let data = lookupSprite(m.item.assignee);
       data.multi = 1;
       data.filter = false;
       data.item = m.item;
       const itemRendered = function(texture) {
-        data.itemTexture = texture
-        animateSPSprint(app, data, function() {
-          let symbols = getCompletedSymbols(m.item, false);
+        data.itemTexture = texture;
+        const fn = function() {
+          let symbols = getCompletedSymbols(m.item, true);
           showMessage(app, `${m.item.type} ${m.item.jira} ✔ COMPLETED!\n${symbols}`, null, options);
-          queueFunction(() => { cycleMessages(app, messages, callback); }, 3000 / getSpeed());
-        });
+          queueFunction(() => { cycleAddedItems(app, messages, callback); }, 3000 / getSpeed());
+        };
+        if (data.assignees) {
+          animateGroupSPSprint(app, data, fn, { drop: true });
+        } else {
+          animateSPSprint(app, data, fn, { drop: true });
+        }
       }
       renderTexture(m.item, itemRendered);
     } else {
@@ -371,6 +415,7 @@ function cycleMessages(app, messages, callback) {
         options = { fill: ['#440000', '#ff0000'], stroke: '#001a33'};
       } else if (status === "PENDING" || status === "BACKLOG") {
         symbol = "✍";
+        options = { fill: ['#9A9790'], stroke: '#000000'};
       } else if (status === "INPROGRESS") {
         symbol = "⌛";
       }
@@ -381,4 +426,26 @@ function cycleMessages(app, messages, callback) {
   } else if (callback) {
     callback();
   }
+}
+
+function getItemAssignees(item, assignees=null) {
+  if (!assignees) {
+    assignees = {};
+  }
+  if ((item.type === "STORY" || item.type === "SPIKE") &&
+      (item.status === "COMPLETED" || item.status === "INPROGRESS") &&
+      item.assignee && !assignees[item.assignee]) {
+    const data = lookupSprite(item.assignee);
+    if (data) {
+      assignees[item.assignee] = data;
+    }
+  }
+
+  if (item.children) {
+    item.children.forEach((child) => {
+      getItemAssignees(child, assignees);
+    });
+  }
+
+  return assignees;
 }

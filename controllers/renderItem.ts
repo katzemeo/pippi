@@ -23,7 +23,9 @@ async function renderItem(teamName: string, sprint: string|null = null, itemID: 
     }
     try {
       const file = await Deno.open(imagePath);
-      Deno.close(file.rid);
+      if (Deno.close !== undefined) {
+        Deno.close(file.rid);
+      }
     } catch (error) {
       //console.log(error);
       if (env.RENDER_OUTPUT === "true") {

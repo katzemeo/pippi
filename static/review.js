@@ -68,7 +68,7 @@ function playReview(canvas, data, callback) {
 
   // Load sprint charts (if any)
   const chart1 = data.chart1;
-  if (chart1) {
+  if (chart1 && SHOW_CHARTS) {
     let image1 = new Image();
     image1.onload = function() {
       const base1 = new PIXI.BaseTexture(image1);
@@ -79,7 +79,7 @@ function playReview(canvas, data, callback) {
         image2.onload = function() {
           const base2 = new PIXI.BaseTexture(image2);
           const texture2 = new PIXI.Texture(base2);
-          setupReview(app, data, texture1, texture2, callback);
+          setupReview(app, data, texture2, texture1, callback);
         };
         image2.src = `/render/${encodeURIComponent(chart2)}?team=${encodeURIComponent(data.name)}&sprint=NONE`;
       } else {
@@ -201,26 +201,111 @@ function startReview(app, data, callback) {
   }, { count: 2 });
 }
 
-function positionSprite(pippi, sprite, factor) {
-  sprite.position.set(pippi.x + pippi.width - factor.xOffset, pippi.y - sprite.height * 0.2);
+function positionSprite(pippi, dim, sprite, factor) {
+  sprite.position.set(pippi.x + (pippi.width/2) + (dim.width/2) - factor.xOffset, pippi.y + (dim.height/2) - (sprite.height/2));
 }
 
 function createAnimatedSprite(name, asset, frames) {
-  console.log(`createAnimatedSprite("${name}", "${frames}")`);
+  console.log(`createAnimatedSprite("${name}", "${frames}")`, asset.data.animations);
   let animations = asset.data.animations;
   return PIXI.AnimatedSprite.fromFrames(animations[frames]);
+}
+
+function randomChoice(choices) {
+  let index = randomInt(0, choices.length-1);
+  //console.log(`randomChoice() =`, index);
+  return choices[index];
+}
+
+function lookupAttack(first, item, defaultAttack) {
+  let attack = defaultAttack;
+  if (item) {
+    if (item.type === "FEAT" && first) {
+      attack = "juggle";
+    } else {
+      if (item.unblocked) {
+        attack = "keyboard";
+      } else if (item.new) {
+        attack = randomChoice(["coffee", "pop", "purple"]);
+      }
+    }
+  }
+  return attack;
+}
+
+function createCharacterAnimation(animations, character, item, data) {
+  let pippi;
+  let charScale = 1;
+  texture = PIXI.Texture.from(`assets/${character}.png`);
+  if (!texture) {
+    texture = PIXI.Texture.from(`assets/pippi.png`);
+  }
+
+  // Lookup custom attack animation or use default
+  const attack = lookupAttack(animations.length === 0, item, data.attack ?? "attack");
+  asset = PIXI.Assets.cache.get(`assets/spritesheet/${attack}.json`);
+  if (asset) {
+    const attackData = ANIMATIONS[attack];
+    if (attackData) {
+      Object.assign(data, attackData);
+    }      
+
+    speedDenominator = 12;
+    animationScale = (data.attackScale !== undefined) ? data.attackScale : 1;
+    speedDenominator /= (data.attackSpeed !== undefined) ? data.attackSpeed : 1;
+    charScale = (data.scale !== undefined) ? data.scale : charScale;
+    animation = createAnimatedSprite(attack, asset, `${attack}_sprite`);
+    animation.x += (data.attackXOffset !== undefined) ? data.attackXOffset : 10;
+    animation.y += (data.attackYOffset !== undefined) ? data.attackYOffset : -35;
+    animation.scale.x = animationScale;
+    animation.scale.y = animationScale;
+
+    const charSprite = new PIXI.Sprite(texture);
+    
+    charSprite.x += (data.xOffset !== undefined) ? data.xOffset : -7;
+    charSprite.y += (data.yOffset !== undefined) ? data.yOffset : 0;
+    charSprite.scale.x = charScale * (data.dir ?? 1);
+    charSprite.scale.y = charScale;
+    pippi = new PIXI.Container();
+    pippi.addChild(charSprite);
+    pippi.addChild(animation);
+    animations.push(animation);
+    configureAnimationSpeed(animation, item, speedDenominator);
+  } else {
+    applyAffects = true;
+    pippi = new PIXI.Sprite(texture);
+  }
+  return pippi;
+}
+
+function configureAnimationSpeed(animation, item, speedDenominator) {
+  // Setup animation at 6 fps.
+  if (animation) {
+    let speed = 1;
+    if (item) {
+      const est = item.estimate ?? 1;
+      if (est >= 8) {
+        speed = 4;
+      } else if (est >= 5) {
+        speed = 3;
+      } else if (est >= 3) {
+        speed = 2;
+      }
+    }
+    animation.animationSpeed = speed / speedDenominator;
+  }
 }
 
 function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   let character = "pippi";
   let frames = null;
-  let sprite = null;
+  let itemSprite = null;
   if (data) {
-    character = data.character ?? "pippi";
+    character = data.character ?? character;
     frames = data.frames ?? character + "_run";
     if (data.itemTexture) {
-      sprite = new PIXI.Sprite(data.itemTexture);
-      scaleItem(sprite, data.item);      
+      itemSprite = new PIXI.Sprite(data.itemTexture);
+      scaleItem(itemSprite, data.item);
     }
   }
   if (!frames) {
@@ -236,34 +321,19 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   let pippi = null;
   let animation = null;
   let applyAffects = false;
+  let speedDenominator = 6;
   if (asset) {
     pippi = createAnimatedSprite(character, asset, frames);
     animation = pippi;
-  } else {
-    let charScale = 1;
-    texture = PIXI.Texture.from(`assets/${character}.png`);
-    if (!texture) {
-      texture = PIXI.Texture.from(`assets/pippi.png`);
+    if (data) {
+      configureAnimationSpeed(animation, data.item, speedDenominator);
     }
-
+  } else {
+    const animations = [];
+    pippi = createCharacterAnimation(animations, character, data.item, data);
     character = "custom";
-    // Lookup custom attack animation or use default
-    const attack = data.attack ?? "attack";
-    asset = PIXI.Assets.cache.get(`assets/spritesheet/${attack}.json`);
-    if (asset) {
-      charScale = (data.scale !== undefined) ? data.scale : charScale;
-      animation = createAnimatedSprite(attack, asset, `${attack}_sprite`);
-      const charSprite = new PIXI.Sprite(texture);
-      pippi = new PIXI.Container();
-      charSprite.x += (data.xOffset !== undefined) ? data.xOffset : -7;
-      charSprite.y += (data.yOffset !== undefined) ? data.yOffset : 0;
-      charSprite.scale.x = charScale * (data.dir ?? 1);
-      charSprite.scale.y = charScale;
-      pippi.addChild(charSprite);
-      pippi.addChild(animation);
-    } else {
-      applyAffects = true;
-      pippi = new PIXI.Sprite(texture);
+    if (animations.length > 0) {
+      animation = animations[0];
     }
   }
 
@@ -272,25 +342,14 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     return;
   }
 
+  let charDim = null;
+  if (data && data.size) {
+    charDim = { width: data.size.width ?? pippi.width, height: data.size.height ?? pippi.height };
+  }
+
   const factor = getSpriteFactor(character, character !== "custom" ? data : null);
   const bgWidth = app.screen.width;
   const bgHeight = app.screen.height;
-
-  // Setup animation at 6 fps.
-  if (animation) {
-    let speed = 1;
-    if (data && data.item) {
-      const est = data.item.estimate ?? 1;
-      if (est >= 8) {
-        speed = 4;
-      } else if (est >= 5) {
-        speed = 3;
-      } else if (est >= 3) {
-        speed = 2;
-      }
-    }
-    animation.animationSpeed = speed / 6;
-  }
 
   //console.log(factor);
   pippi.position.set(50, bgHeight - 180);
@@ -299,16 +358,16 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   pippi.x -= factor.xOffset;
   pippi.y -= factor.yOffset;
 
+  const drop = options.drop === true;
+  if (itemSprite) {
+    positionSprite(pippi, charDim ?? pippi, itemSprite, factor);
+    if (drop) {
+      itemSprite.y = -25;
+    }
+    app.stage.addChild(itemSprite);
+  }
   app.stage.addChild(pippi);
 
-  const drop = options.drop === true;
-  if (sprite) {
-    positionSprite(pippi, sprite, factor);
-    if (drop) {
-      sprite.y = -25;
-    }
-    app.stage.addChild(sprite);
-  }
   let multi = data ? data.multi ?? 1 : 1;
   let count = options.count ?? 1;
   let speed = 8 * getSpeed() * multi;
@@ -316,8 +375,8 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   const tickerCB = delta => {
     if (pippi.x > bgWidth + 200) {
       pippi.x = 50 - factor.xOffset;
-      if (sprite) {
-        positionSprite(pippi, sprite, factor);
+      if (itemSprite) {
+        positionSprite(pippi, charDim ?? pippi, itemSprite, factor);
       }
       count--;
       if (count <= 0) {
@@ -326,8 +385,8 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
           animation.stop();
         }
         app.stage.removeChild(pippi);
-        if (sprite) {
-          app.stage.removeChild(sprite);
+        if (itemSprite) {
+          app.stage.removeChild(itemSprite);
         }
         callback();
       }
@@ -337,33 +396,134 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
         pippi.scale.set(factor.scale + Math.sin(scaleCount) * 0.4);
       }
       pippi.x = pippi.x + speed * delta;
-      if (sprite) {
-        sprite.x = sprite.x + speed * delta;
+      if (itemSprite) {
+        itemSprite.x = itemSprite.x + speed * delta;
       }
     }
   }
 
   const t2bTickerCB = delta => {
-    if (sprite.y > bgHeight - sprite.height - 50) {
+    if (itemSprite.y > bgHeight - itemSprite.height - 50) {
       app.ticker.remove(t2bTickerCB);
-      positionSprite(pippi, sprite, factor);
+      positionSprite(pippi, charDim ?? pippi, itemSprite, factor);
       speed = 8 * getSpeed() * multi;
       if (animation) {
         animation.play();
       }
       app.ticker.add(tickerCB);
     } else {
-      sprite.y = sprite.y + speed * delta;
+      itemSprite.y = itemSprite.y + speed * delta;
       speed += 1;
     }
   }
 
-  if (sprite && drop) {
+  if (itemSprite && drop) {
     app.ticker.add(t2bTickerCB);
   } else {
     if (animation) {
       animation.play();
     }
+    app.ticker.add(tickerCB);
+  }
+}
+
+function animateGroupSPSprint(app, data, callback, options={count: 1, drop: false}) {
+  const bgWidth = app.screen.width;
+  const bgHeight = app.screen.height;
+
+  let itemSprite = null;
+  if (data.itemTexture) {
+    itemSprite = new PIXI.Sprite(data.itemTexture);
+    scaleItem(itemSprite, data.item);
+    itemSprite.position.set(50, bgHeight - 180);
+  }
+
+  let group = new PIXI.Container();
+  const animations = [];
+  let x = 0;
+  Object.values(data.assignees).forEach((charData) => {
+    let character = charData.character ?? CHAR_NAME;
+    let frames = charData.frames ?? character + "_sprite";
+
+    let asset = null;
+    if (!character.startsWith("icon_") && frames !== "icon") {
+      asset = PIXI.Assets.cache.get(`assets/spritesheet/${character}.json`);
+    }
+
+    let pippi;
+    if (asset) {
+      pippi = createAnimatedSprite(character, asset, frames);
+      animations.push(pippi);
+      configureAnimationSpeed(animation, data.item, speedDenominator);
+    } else {
+      pippi = createCharacterAnimation(animations, character, data.item, charData);
+    }
+    group.addChild(pippi);
+    pippi.x = x;
+    pippi.y = randomInt(5, 125);
+    x -= randomInt(100, 120);
+  });
+
+  group.position.set(-group.width, bgHeight - 180);
+  group.scale.x = 3;
+  group.scale.y = 3;
+  group.x -= 0;
+  group.y -= 700;
+
+  const drop = options.drop === true;
+  if (itemSprite) {
+    //positionSprite(group, group, itemSprite, factor);
+    if (drop) {
+      itemSprite.y = -25;
+    }
+    app.stage.addChild(itemSprite);
+  }
+  app.stage.addChild(group);
+
+  let speed = 8 * getSpeed();
+  let count = 1;
+
+  const tickerCB = delta => {
+    if (group.x > bgWidth + group.width) {
+      group.x = 50;
+      if (itemSprite) {
+        //positionSprite(group, charDim ?? group, itemSprite, factor);
+      }
+      count--;
+      if (count <= 0) {
+        app.ticker.remove(tickerCB);
+        animations.map(function(animation) { animation.stop(); });
+        app.stage.removeChild(group);
+        if (itemSprite) {
+          app.stage.removeChild(itemSprite);
+        }
+        callback();
+      }
+    } else {
+      group.x = group.x + speed * delta;
+      if (itemSprite) {
+        itemSprite.x = itemSprite.x + speed * delta;
+      }
+    }
+  }
+
+  const t2bTickerCB = delta => {
+    if (itemSprite.y > bgHeight - itemSprite.height - 50) {
+      app.ticker.remove(t2bTickerCB);
+      //positionSprite(group, charDim ?? group, itemSprite, factor);
+      speed = 8 * getSpeed();
+      animations.map(function(animation) { animation.play(); });
+      app.ticker.add(tickerCB);
+    } else {
+      itemSprite.y = itemSprite.y + speed * delta;
+      speed += 1;
+    }
+  }
+
+  if (itemSprite && drop) {
+    app.ticker.add(t2bTickerCB);
+  } else {
+    animations.map(function(animation) { animation.play(); });
     app.ticker.add(tickerCB);
   }
 }

@@ -106,7 +106,7 @@ function _initDraw(width, height, map) {
         if (obj.myitem && obj.myitem.progress) {
           progress = ` ${PCT(obj.myitem.progress)}%`;
         }
-        writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}${progress}] - "${obj.summary ?? ""}"${assigneeText}`);
+        writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}${progress}] - "${obj.summary ?? obj.name ?? ""}"${assigneeText}`);
       }
 
       if (obj.myitem && !_tooltipGroup || _tooltipGroup.myitem != obj.myitem) {
@@ -123,15 +123,17 @@ function _initDraw(width, height, map) {
 
         //const tooltip = `${obj.myitem.jira}: ${obj.myitem.summary}`;
         tooltip = obj.myitem.summary;
-        const text = new fabric.Text(tooltip, {fontSize: fontSize, fontFamily: 'Helvetica', textAlign: 'left', top: 0, left: 5});
-        const rect = new fabric.Rect({top: 0, left: 0, width: text.width + 10, height: fontSize+2, fill: 'rgba(194, 64, 64, 0.9)', rx: 4, ry: 4, transparentCorners: true});
-        let left = obj.parentObject ? obj.parentObject.left : obj.left;
-        _tooltipGroup = new fabric.Group([rect, text], {
-          left: left, top: obj.top - rect.height - 1
-        });
-        _tooltipGroup.myitem = obj.myitem;
-        canvas.add(_tooltipGroup);
-        canvas.requestRenderAll();
+        if (tooltip) {
+          const text = new fabric.Text(tooltip, {fontSize: fontSize, fontFamily: 'Helvetica', textAlign: 'left', top: 0, left: 5});
+          const rect = new fabric.Rect({top: 0, left: 0, width: text.width + 10, height: fontSize+2, fill: 'rgba(194, 64, 64, 0.9)', rx: 4, ry: 4, transparentCorners: true});
+          let left = obj.parentObject ? obj.parentObject.left : obj.left;
+          _tooltipGroup = new fabric.Group([rect, text], {
+            left: left, top: obj.top - rect.height - 1
+          });
+          _tooltipGroup.myitem = obj.myitem;
+          canvas.add(_tooltipGroup);
+          canvas.requestRenderAll();  
+        }
       }
     }
   });
@@ -224,6 +226,26 @@ function buildCanvasPopupMenu(canvas, menu) {
   menu.appendChild(mi);
 
   const className = "list-group-item list-group-item-action menuitem-padding";
+
+  // PI Demo
+  addPIDemoMenuItem(menu, className);
+
+  // Toggle Team/Items Mode
+  if (_team.members) {
+    mi = document.createElement("a");
+    mi.className = className;
+    mi.href = "#";
+    mi.onclick = function() {
+      SHOW_TEAM = !SHOW_TEAM;
+      showTeamMap();
+    };
+    if (SHOW_TEAM) {
+      mi.innerHTML = `<i class="material-icons">category</i> Show Items`;
+    } else {
+      mi.innerHTML = `<i class="material-icons">group</i> Show Team`;
+    }
+    menu.appendChild(mi);  
+  }
 
   // Download Map
   if (true) {
@@ -497,6 +519,112 @@ function _renderChildrenItems(canvas, parentItem, parentObject) {
       canvas.add(item);
       nextColRow(item);
     }
+  });
+
+  nextColRow(item, true);
+  return top;
+}
+
+function _renderTeamCanvas(canvas, members) {
+  let left = 50;
+  let top = 50;
+  let rowHeight = 0;
+  let ratio = canvas.height / canvas.width - 0.1;
+  if (ratio > 1) {
+    ratio = canvas.width / canvas.height - 0.1;
+  }
+  if (ratio < 0.7) {
+    ratio = 0.7;
+  }
+
+  let membersArray = [];
+  Object.keys(members).forEach((id) => {
+    membersArray.push(members[id]);
+  });
+  membersArray = membersArray.sort(function (a, b) {
+    let result = compare(a, b, "squad");
+    if (result === 0) {
+      result = compare(a, b, "role");
+    }
+    if (result === 0) {
+      result = compare(a, b, "name");
+    }
+    return result;
+  });
+
+  const squads = [];
+  const sharedSquad = { name: "Floaters", members: [] };
+  const squadMap = { "Floaters" : sharedSquad };
+  membersArray.forEach((member) => {
+    let squad;
+    if (member.squad) {
+      squad = squadMap[member.squad];
+      if (!squad) {
+        squad = { name: member.squad, members: [] };
+        squadMap[member.squad] = squad;
+        squads.push(squad);
+      }
+    } else {
+      squad = sharedSquad;
+    }
+    squad.members.push(member);
+  });
+  if (sharedSquad.members.length > 0) {
+    squads.push(sharedSquad);
+  }
+
+  squads.forEach((squad) => {
+    let obj = _createSquad(squad.name, squad.capacity ?? 0);
+    obj.myitem = squad;
+    obj.set({left: left, top: top, width: calcFeatSize(squad.capacity ?? squad.members.length * 3)});
+    canvas.add(obj);
+    if (squad.members) {
+      const childrenTop = _renderChildrenMembers(canvas, squad, obj);
+      if (childrenTop > obj.top + obj.height * obj.scaleY) {
+        obj.set({height: (childrenTop - top + obj.height - 50) / obj.scaleY});
+      }
+    }
+    if (obj.height > rowHeight) {
+      rowHeight = obj.height;
+    }
+
+    left += obj.width * obj.scaleX + 50;
+    if (left > canvas.width * obj.scaleX * ratio) {
+      left = 50;
+      top += rowHeight * obj.scaleY + 50;
+      rowHeight = 0;
+    }
+  });
+}
+
+function _renderChildrenMembers(canvas, parentItem, parentObject) {
+  let left = parentObject.left + 50;
+  let top = parentObject.top + 100;
+  let item = null;
+
+  function nextColRow(item, newline = false) {
+    if (item) {
+      left += item.width * item.scaleX + 50;
+    }
+    
+    if (newline || left > parentObject.left + parentObject.width * parentObject.scaleX - 120) {
+      left = parentObject.left + 50;
+      if (item) {
+        top += item.height * item.scaleY + 50;
+      }
+      item = null;
+    }
+  }
+
+  let members = parentItem.members;
+  members.forEach((member) => {
+    item = _createMember(member.id, member.role, member.name);
+    item.myitem = member;
+    item.parentItem = parentItem;
+    item.parentObject = parentObject;      
+    item.set({left: left, top: top});
+    canvas.add(item);
+    nextColRow(item);
   });
 
   nextColRow(item, true);

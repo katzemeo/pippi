@@ -4,8 +4,106 @@ const ASSETS = [
   "assets/pippi.png",
   "assets/spritesheet/pippi_run.json",
   "assets/spritesheet/attack.json",
-  "assets/spritesheet/broom.json"
+  "assets/spritesheet/water.json",
+  "assets/spritesheet/coffee.json",
+  "assets/spritesheet/pop.json",
+  "assets/spritesheet/purple.json",
+  "assets/spritesheet/guitar.json",
+  "assets/spritesheet/keyboard.json",
+  "assets/spritesheet/broom.json",
+  "assets/spritesheet/juggle.json"
 ];
+
+const ANIMATIONS = {
+  attack: {
+    "attackScale": 1,
+    "attackSpeed": 1,
+    "attackXOffset": 0,
+    "attackYOffset": 0
+  },
+  water: {
+    "attack": "water",
+    "attackScale": 1,
+    "attackXOffset": 80,
+    "attackYOffset": 0,
+    "attackSpeed": 0.9,
+    "size": {
+      "width": 64,
+      "height": 64
+    }
+  },
+  coffee: {
+    "attack": "coffee",
+    "attackScale": 1,
+    "attackXOffset": 80,
+    "attackYOffset": 30,
+    "attackSpeed": 0.9,
+    "size": {
+      "width": 64,
+      "height": 64
+    }
+  },
+  pop: {
+    "attack": "pop",
+    "attackScale": 1,
+    "attackXOffset": 80,
+    "attackYOffset": 30,
+    "attackSpeed": 0.9,
+    "size": {
+      "width": 64,
+      "height": 64
+    }
+  },
+  purple: {
+    "attack": "purple",
+    "attackScale": 1,
+    "attackXOffset": 80,
+    "attackYOffset": 30,
+    "attackSpeed": 0.9,
+    "size": {
+      "width": 64,
+      "height": 64
+    }
+  },
+  guitar: {
+    "attack": "guitar",
+    "attackScale": 0.5,
+    "attackSpeed": 0.8,
+    "attackXOffset": 20,
+    "attackYOffset": 10,
+    "size": {
+      "width": 64,
+      "height": 192
+    }
+  },
+  keyboard: {
+    "attack": "keyboard",
+    "attackScale": 0.5,
+    "attackXOffset": 0,
+    "attackYOffset": 0,
+    "size": {
+      "width": 64,
+      "height": 192
+    }
+  },
+  broom: {
+    "attackScale": 1,
+    "attackSpeed": 1,
+    "attackXOffset": 0,
+    "attackYOffset": 0
+  },
+  juggle: {
+    "attack": "juggle",
+    "attackScale": 0.8,
+    "attackXOffset": 35,
+    "attackYOffset": 0,
+    "attackSpeed": 1,
+    "size": {
+      "width": 64,
+      "height": 64
+    }
+  }
+};
 
 var _pixiJSLoaded = false;
 var _app = null;
@@ -35,8 +133,6 @@ function getSpriteFactor(character, data) {
         xOffset = -50;
       } else if (character === "toni") {
         xOffset = -40;
-      } else if (character === "attack") {
-        xOffset = 20;
       }
     }
   }
@@ -50,13 +146,13 @@ function getSpriteFactor(character, data) {
 }
 
 function scaleItem(sprite, item) {
-  if (sprite.width < 100) {
-    let factor = 1.5;
+  if (sprite.width <= 256) {
+    let factor = 1.2;
     let scale = factor * Math.sqrt(item.estimate ?? 3);
     if (scale > 5) {
       scale = 5;
-    } else if (scale < 0.5) {
-      scale = 0.5;
+    } else if (scale < 1) {
+      scale = 1;
     }
     sprite.scale.x = sprite.scale.y = scale;
   } else {

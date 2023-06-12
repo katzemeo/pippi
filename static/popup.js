@@ -92,21 +92,15 @@ function buildSprintPopupMenu(menu) {
 
   const className = "list-group-item list-group-item-action menuitem-padding";
 
+  // PI Demo
+  addPIDemoMenuItem(menu, className);
+
   // PI Summary
   mi = document.createElement("a");
   mi.className = className;
   mi.href = "#";
   mi.setAttribute("onclick", `showSummaryItems(); return false;`);
   mi.innerHTML = `<i class="material-icons">analytics</i> PI Summary`;
-  menu.appendChild(mi);
-
-  // PI Demo
-  mi = document.createElement("a");
-  mi.className = className;
-  mi.href = "#";
-  mi.target = "pippi";
-  mi.setAttribute("onclick", `openPIPPI(window, true, true, true, true, ANIMATE_SPEED, true); return false;`);
-  mi.innerHTML = `👏 PI Demo 🎉`;
   menu.appendChild(mi);
 
   // Show sprints

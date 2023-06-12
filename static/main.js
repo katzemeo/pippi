@@ -6,6 +6,7 @@ const JSON_HEADERS = {
 };
 
 var ANIMATE_SPEED = 2;
+var SHOW_TEAM = false;
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
@@ -542,18 +543,21 @@ function setTeam(team) {
   if (_canvasMode) {
     refreshMap();
   }
+  updateTeamNameCapacity();
+}
 
+function updateTeamNameCapacity() {
   el = document.getElementById("team_name");
   let capacity = `SP:  ${_team.capacity ?? "Unknown"}`;
-  if (_team.capacity && _team.computed_effort) {
-    if (_team.capacity >= _team.computed_effort) {
-      capacity += `, Unused: ${EFF(_team.capacity - _team.computed_effort)}`;
+  if (_team.capacityDelta) {
+    if (_team.capacityDelta > 0) {
+      capacity += `, Unused: ${EFF(_team.capacityDelta)}`;
     } else {
-      capacity += `, <strong class="text-danger">Over: ${EFF(_team.computed_effort - _team.capacity)}</strong>`;
+      capacity += `, <strong class="text-danger">Over: ${EFF(-_team.capacityDelta)}</strong>`;
     }
   }
   el.innerHTML = TEAM_NAME() +" ("+ capacity +")";
-  el.title = `${formatDate(NOW)} - ${team.time_zone}`;
+  el.title = `${formatDate(NOW)} - ${_team.time_zone}`;
 }
 
 function refreshTeamDate(showTime = false, timeZone = TIME_ZONE) {
@@ -1195,6 +1199,13 @@ function lookupTeamMember(memberID, short=false) {
   return memberName ?? "(unknown)";
 }
 
+function lookupMemberIcon(member) {
+  if (!member.icon || member.icon === "default") {
+    return `/public/usericon.png`;
+  }
+  return `/public/assets/${member.icon}.png`;
+}
+
 function renderItems() {
   if (!_SPDayRate || isNaN(_SPDayRate)) {
     _SPDayRate = _team.sp_per_day_rate ?? DEFAULT_SP_DAY_RATE;
@@ -1337,6 +1348,11 @@ function renderItems() {
       _team.computed_effort = teamTotalEffort;
       _team.completed = totalCompleted;
       _team.remaining = totalRemaining;
+      if (_team.capacity) {
+        _team.capacityDelta = _team.capacity - _team.computed_effort;
+      } else {
+        delete _team.capacityDelta;
+      }
       _refresh = false;
     }
 
@@ -1371,12 +1387,23 @@ function renderItems() {
     label.title = "Please schedule demos for completed items!";
     el.style = GREEN;
   } else if (totalRemaining > 0) {
-    const label = writeTeam("Remaining Effort", "team_status");
+    let label;
     if (hasBlockers) {
+      label = writeTeam(`Remaining Effort ⛔`, "team_status");
       label.title = "Please resolve blockers!";
       el.style = RED;
     } else {
-      el.style = AMBER;
+      if (_team.capacityDelta) {
+        if (_team.capacityDelta < 0) {
+          label = writeTeam(`Remaining Effort ⚠️`, "team_status");
+          label.title = "Please review team capacity & buffer";
+          el.style = AMBER;
+        } else {
+          label = writeTeam(`Remaining Effort ✅`, "team_status");
+        }
+      } else {
+        label = writeTeam(`Remaining Effort`, "team_status");
+      }
     }
   } else {
     writeTeam("", "team_status");
@@ -1649,12 +1676,12 @@ function renderChildrenItems() {
 
     if (item.assignee) {
       let assigneeName = lookupTeamMember(item.assignee, true);
-      if (_team.members) {
+      /*if (_team.members) {
         const m = _team.members[item.assignee];
         if (m && m.icon) {
           assigneeName = `<img src="${lookupMemberIcon(m)}" alt="member icon" width="24" height="24"/> ${assigneeName}`;
         }
-      }
+      }*/
 
       cell = renderCell(row, assigneeName);
       cell.title = "Assignee: " + item.assignee;
@@ -1871,6 +1898,7 @@ function showTeamMap(data=null, items=_items, hook=null) {
     _fabricJSLoading = true;
     loadJSSync("/public/fabric.min.js");
     loadJSSync("/public/draw.js");
+    loadJSSync("/public/team.js");
     loadJSSync("/public/custom.js", callback);
   } else {
     callback();
@@ -1887,7 +1915,9 @@ function _showTeamMap(data, items, renderImmediate=false) {
   enableDisableNavigation();
 
   _renderTeamDate(canvas);
-  if (!data && items) {
+  if (_team.members && SHOW_TEAM) {
+    _renderTeamCanvas(_canvasMap, _team.members);
+  } else if (!data && items) {
     _renderItemsCanvas(_canvasMap, items);
   }
 
@@ -1969,4 +1999,15 @@ function openPIPPI(parent=window, showAll=false, showAdded=true, showStories=tru
     win = parent.open(url, "pippi", `directories=no,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,resizable=yes,copyhistory=no,fullscreen=no,width=${width},height=${height},top=${top},left=${left}`);
   }
   win.focus();
+}
+
+function addPIDemoMenuItem(menu, className) {
+  mi = document.createElement("a");
+  mi.className = className;
+  mi.href = "#";
+  mi.target = "pippi";
+  //parent=window, showAll=false, showAdded=true, showStories=true, showCompleted=true, speed=ANIMATE_SPEED, fullscreen=false
+  mi.setAttribute("onclick", `openPIPPI(window, true, true, false, false, ANIMATE_SPEED, true); return false;`);
+  mi.innerHTML = `👏 PI Demo 🎉`;
+  menu.appendChild(mi);  
 }
