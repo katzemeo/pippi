@@ -4,14 +4,14 @@ const ASSETS = [
   "assets/pippi.png",
   "assets/spritesheet/pippi_run.json",
   "assets/spritesheet/attack.json",
-  "assets/spritesheet/water.json",
+  /*"assets/spritesheet/water.json",
   "assets/spritesheet/coffee.json",
   "assets/spritesheet/pop.json",
   "assets/spritesheet/purple.json",
   "assets/spritesheet/guitar.json",
   "assets/spritesheet/keyboard.json",
   "assets/spritesheet/broom.json",
-  "assets/spritesheet/juggle.json"
+  "assets/spritesheet/juggle.json"*/
 ];
 
 const ANIMATIONS = {

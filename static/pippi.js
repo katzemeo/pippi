@@ -3,6 +3,14 @@ const JSON_HEADERS = {
   "Content-Type": "application/json",
 };
 
+const MAX_FRAC_DIGITS = 1;
+const _percentFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: MAX_FRAC_DIGITS }).format;
+const PCT = function (value) { if (!isNaN(value)) { return _percentFormat(value); } return ""; };
+
+function toFixed(n) {
+  return Number(n.toFixed(MAX_FRAC_DIGITS+2));
+}
+
 const MY_TEAM = "MY TEAM";
 const EMPTY_TEAM = {
   name: MY_TEAM,
@@ -152,6 +160,7 @@ function processTeamItems(data) {
   team.sprint = data.sprint ?? team.sprint;
   team.delta = data.delta;
   team.date = data.date ?? team.date;
+  team.loadIcons = data.loadIcons ?? team.loadIcons;
   team.chart1 = data.chart1;
   team.chart2 = data.chart2;
   processTeamMembers(data, team);

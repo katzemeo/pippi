@@ -217,10 +217,11 @@ function randomChoice(choices) {
   return choices[index];
 }
 
-function lookupAttack(first, item, defaultAttack) {
+function lookupAttack(first, item, totalSP, defaultAttack) {
+  //console.log(`lookupAttack() - ${item.jira}, ${totalSP}`);
   let attack = defaultAttack;
   if (item) {
-    if (item.type === "FEAT" && first) {
+    if (item.type === "FEAT" && first && (item.estimate > 8 || totalSP > 5)) {
       attack = "juggle";
     } else {
       if (item.unblocked) {
@@ -242,7 +243,7 @@ function createCharacterAnimation(animations, character, item, data) {
   }
 
   // Lookup custom attack animation or use default
-  const attack = lookupAttack(animations.length === 0, item, data.attack ?? "attack");
+  const attack = lookupAttack(animations.length === 0, item, data.totalSP, data.attack ?? "attack");
   asset = PIXI.Assets.cache.get(`assets/spritesheet/${attack}.json`);
   if (asset) {
     const attackData = ANIMATIONS[attack];
@@ -301,8 +302,11 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
   let frames = null;
   let itemSprite = null;
   if (data) {
-    character = data.character ?? character;
-    frames = data.frames ?? character + "_run";
+    const spriteData = data.sprite;
+    if (spriteData) {
+      character = spriteData.character ?? character;
+      frames = spriteData.frames ?? character + "_run";
+    }
     if (data.itemTexture) {
       itemSprite = new PIXI.Sprite(data.itemTexture);
       scaleItem(itemSprite, data.item);
@@ -435,15 +439,25 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
   if (data.itemTexture) {
     itemSprite = new PIXI.Sprite(data.itemTexture);
     scaleItem(itemSprite, data.item);
-    itemSprite.position.set(50, bgHeight - 180);
   }
 
   let group = new PIXI.Container();
   const animations = [];
   let x = 0;
-  Object.values(data.assignees).forEach((charData) => {
-    let character = charData.character ?? CHAR_NAME;
-    let frames = charData.frames ?? character + "_sprite";
+  const assignees = Object.values(data.assignees).sort(function (a, b) {
+    return (b.totalSP - a.totalSP);
+  });
+  assignees.forEach((charData) => {
+    let character = CHAR_NAME;
+    let frames = null;
+    const spriteData = charData.sprite;
+    if (spriteData) {
+      character = spriteData.character ?? CHAR_NAME;
+      frames = spriteData.frames;
+    }
+    if (!frames) {
+      frames = character + "_sprite"
+    }
 
     let asset = null;
     if (!character.startsWith("icon_") && frames !== "icon") {
@@ -461,18 +475,24 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
     group.addChild(pippi);
     pippi.x = x;
     pippi.y = randomInt(5, 125);
-    x -= randomInt(100, 120);
+    x -= randomInt(120, 140);
   });
 
-  group.position.set(-group.width, bgHeight - 180);
+  const factor = {
+    scale: 1,
+    xOffset: 0,
+    yOffset: 0,
+    dir: 1
+  };
+  group.position.set(-group.width, bgHeight/2 - group.height);
   group.scale.x = 3;
   group.scale.y = 3;
-  group.x -= 0;
-  group.y -= 700;
+  group.x += 0;
+  group.y += 0;
 
   const drop = options.drop === true;
   if (itemSprite) {
-    //positionSprite(group, group, itemSprite, factor);
+    positionSprite(group, group, itemSprite, factor);
     if (drop) {
       itemSprite.y = -25;
     }
@@ -485,10 +505,6 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
 
   const tickerCB = delta => {
     if (group.x > bgWidth + group.width) {
-      group.x = 50;
-      if (itemSprite) {
-        //positionSprite(group, charDim ?? group, itemSprite, factor);
-      }
       count--;
       if (count <= 0) {
         app.ticker.remove(tickerCB);
@@ -498,6 +514,10 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
           app.stage.removeChild(itemSprite);
         }
         callback();
+      }
+      group.x = -group.width;
+      if (itemSprite) {
+        positionSprite(group, group, itemSprite, factor);
       }
     } else {
       group.x = group.x + speed * delta;
@@ -510,7 +530,7 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
   const t2bTickerCB = delta => {
     if (itemSprite.y > bgHeight - itemSprite.height - 50) {
       app.ticker.remove(t2bTickerCB);
-      //positionSprite(group, charDim ?? group, itemSprite, factor);
+      positionSprite(group, group, itemSprite, factor);
       speed = 8 * getSpeed();
       animations.map(function(animation) { animation.play(); });
       app.ticker.add(tickerCB);

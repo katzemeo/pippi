@@ -8,7 +8,12 @@ function _loadTeamIcons(members) {
       image.onload = function() {
         _teamIcons[m.id] = image;
       };
-      image.src = `/public/assets/${m.icon}.png`;
+      image.src = lookupMemberIcon(m);
+      /*
+      fabric.Image.fromURL(`/public/assets/${m.icon}.png`, function(image) {
+        _teamIcons[m.id] = image;
+      });
+      */
     }
   });
 }
@@ -247,6 +252,21 @@ function buildCanvasPopupMenu(canvas, menu) {
     menu.appendChild(mi);  
   }
 
+  // Toggle UNPLANNED/PLANNED Feats
+  mi = document.createElement("a");
+  mi.className = className;
+  mi.href = "#";
+  mi.onclick = function() {
+    SHOW_UNPLANNED = !SHOW_UNPLANNED;
+    showTeamMap();
+  };
+  if (SHOW_UNPLANNED) {
+    mi.innerHTML = `<i class="material-icons">filter_list</i> Show Planned Only`;
+  } else {
+    mi.innerHTML = `<i class="material-icons">filter_list_off</i> Show All Items`;
+  }
+  menu.appendChild(mi);
+
   // Download Map
   if (true) {
     mi = document.createElement("a");
@@ -400,6 +420,10 @@ function _renderItemsCanvas(canvas, items) {
   }
 
   items.forEach((item) => {
+    if (!SHOW_UNPLANNED && item.status === "BACKLOG") {
+      return;
+    }
+
     const effort = EFF(convertToSP(item.computed_effort, item.unit));
     let obj;
     if (item.type === "FEAT") {

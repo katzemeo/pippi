@@ -7,6 +7,7 @@ const JSON_HEADERS = {
 
 var ANIMATE_SPEED = 2;
 var SHOW_TEAM = false;
+var SHOW_UNPLANNED = false;
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
@@ -337,6 +338,7 @@ function processTeamItems(data) {
   team.sprint = data.sprint ?? team.sprint;
   team.delta = data.delta;
   team.date = data.date ?? team.date;
+  team.loadIcons = data.loadIcons ?? team.loadIcons;
   team.chart1 = data.chart1;
   team.chart2 = data.chart2;
   if (data.recompute && team.items) {
@@ -1972,11 +1974,11 @@ function updateCanvasSelection(canvas=_canvasMap) {
   }
 }
 
-function openPIPPI(parent=window, showAll=false, showAdded=true, showStories=true, showCompleted=true, speed=ANIMATE_SPEED, fullscreen=false) {
+function openPIPPI(parent=window, showAll=false, showAdded=true, showStories=true, completedOnly=true, speed=ANIMATE_SPEED, fullscreen=false) {
   if (speed <= 0) {
     speed = _animateSpeedParam;
   }
-  const url = `/public/pippi.html?speed=${speed}&show_all=${showAll}&show_added=${showAdded}&show_stories=${showStories}&show_completed=${showCompleted}&team=${encodeURIComponent(_team.name)}&sprint=${encodeURIComponent(_team.sprint)}`;
+  const url = `/public/pippi.html?speed=${speed}&show_all=${showAll}&show_added=${showAdded}&show_stories=${showStories}&completed_only=${completedOnly}&team=${encodeURIComponent(_team.name)}&sprint=${encodeURIComponent(_team.sprint)}`;
   let win;
   if (fullscreen) {
     win = parent.open(url, "pippi", `directories=no,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,resizable=yes,copyhistory=no,fullscreen=yes`);

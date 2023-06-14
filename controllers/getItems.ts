@@ -85,6 +85,11 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
           c["old"] = baseItem[k] ?? "(none)";
           c["new"] = v ?? "(none)";
           changes.diffs.push(c);
+
+          // Flag items that was recently unblocked
+          if (c.key === "status" && c.old === "BLOCKED" && c.new !== "BLOCKED") {
+            item.unblocked = true;
+          }
         });
         //console.log(changes);
         base.updated[item.jira] = changes;
@@ -102,6 +107,10 @@ async function computeDelta(json: any, teamName: string, teamDir: string) {
     if (item.children) {
       item.children.forEach((child:any) => {
         compareItem(child);
+        // Propagate up unblocked flag (if any child was recently unblocked)
+        if (item.status !== "BLOCKED" && child.unblocked) {
+          item.unblocked = true;
+        }
       });
     }
   }

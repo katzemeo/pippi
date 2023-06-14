@@ -181,10 +181,13 @@ Deno.addSignalListener("SIGINT", () => {
   Deno.exit();
 });
 
-// Handle Ctrl-Break
+// Handle Ctrl-Break (Windows)
+// Note: not supported on Mac/Linux
+/*
 Deno.addSignalListener("SIGBREAK", () => {
   console.warn("SIGBREAK: Interrupted!");
 });
+*/
 
 // Handle graceful shutdown (i.e. kill -s SIGTERM <deno PID>)
 // Note: not supported on WINDOWS

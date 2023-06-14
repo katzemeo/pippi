@@ -237,15 +237,15 @@ function cycleAddedItems(app, messages, callback) {
         if (assignees.length > 1) {
           data = { assignees: spritesMap };
         } else {
-          if (assignees.length > 1) {
-            data = spritesMap[spritesMap[assignees[0]]];
+          if (assignees.length > 0) {
+            data = spritesMap[assignees[0]];
           } else {
-            data = lookupSprite(m.item.assignee);
+            data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
           }
         }
       } else {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ COMPLETED (NEW) ${m.item.jira} - ${m.item.summary}`, true);
-        data = lookupSprite(m.item.assignee);
+        data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
       }
 
       showMessage(app, `✱ ${m.item.jira} ✔ ${m.item.summary}`, null, options);      
@@ -351,9 +351,6 @@ function cycleMessages(app, messages, callback) {
     for (let i=0; i < m.diffs.length; i++) {
       if (m.diffs[i].key === "status") {
         status = m.diffs[i].new;
-        if (m.diffs[i].old === "BLOCKED") {
-          m.item.unblocked = true;
-        }
         break;
       }
     }
@@ -374,14 +371,14 @@ function cycleMessages(app, messages, callback) {
           data = { assignees: spritesMap };
         } else {
           if (assignees.length > 1) {
-            data = spritesMap[spritesMap[assignees[0]]];
+            data = spritesMap[assignees[0]];
           } else {
-            data = lookupSprite(m.item.assignee);
+            data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
           }
         }
       } else {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ COMPLETED ${m.item.jira} - ${m.item.summary}`, true);
-        data = lookupSprite(m.item.assignee);
+        data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
       }
 
       showMessage(app, `${m.item.jira} ✔ ${m.item.summary}`, null, options);
@@ -393,31 +390,39 @@ function cycleMessages(app, messages, callback) {
         const fn = function() {
           let symbols = getCompletedSymbols(m.item, true);
           showMessage(app, `${m.item.type} ${m.item.jira} ✔ COMPLETED!\n${symbols}`, null, options);
-          queueFunction(() => { cycleAddedItems(app, messages, callback); }, 3000 / getSpeed());
+          queueFunction(() => { cycleMessages(app, messages, callback); }, 3000 / getSpeed());
         };
         if (data.assignees) {
-          animateGroupSPSprint(app, data, fn, { drop: true });
+          animateGroupSPSprint(app, data, fn, { drop: false });
         } else {
-          animateSPSprint(app, data, fn, { drop: true });
+          animateSPSprint(app, data, fn, { drop: false });
         }
       }
       renderTexture(m.item, itemRendered);
     } else {
       let symbol = "☕";
       let time = 1000;
+      let progress = m.item.progress;
+      if (!progress && m.item.completed && m.item.remaining !== undefined) {
+        progress = toFixed(m.item.completed * 100 / (m.item.completed + m.item.remaining));
+      }
       status = m.item.status;
+
       if (status === "READY") {
         symbol = "⚡";
         options = { fill: ['#ffffff', '#0000ff'], stroke: '#001a33'};
       } else if (status === "BLOCKED") {
         symbol = "⛔";
+        if (progress) {
+          symbol = `⛔ ${PCT(progress)}%`;          
+        }
         time *= 2.5;
         options = { fill: ['#440000', '#ff0000'], stroke: '#001a33'};
       } else if (status === "PENDING" || status === "BACKLOG") {
         symbol = "✍";
         options = { fill: ['#9A9790'], stroke: '#000000'};
       } else if (status === "INPROGRESS") {
-        symbol = "⌛";
+        symbol = `⌛ ${PCT(progress ?? 0)}%`;
       }
       writeMessage(`[${status}] ${symbol} ${m.item.jira} - ${m.item.summary}`, true);
       showMessage(app, `${m.item.jira} ${symbol} ${m.item.summary}`, null, options);
@@ -434,11 +439,14 @@ function getItemAssignees(item, assignees=null) {
   }
   if ((item.type === "STORY" || item.type === "SPIKE") &&
       (item.status === "COMPLETED" || item.status === "INPROGRESS") &&
-      item.assignee && !assignees[item.assignee]) {
-    const data = lookupSprite(item.assignee);
-    if (data) {
+      item.assignee) {
+
+    let data = assignees[item.assignee];
+    if (!data) {
+      data = { assignee: item.assignee, totalSP: 0, sprite: lookupSprite(item.assignee) };
       assignees[item.assignee] = data;
     }
+    data.totalSP = data.totalSP + (item.estimate ?? 0);
   }
 
   if (item.children) {
