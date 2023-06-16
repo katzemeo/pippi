@@ -105,6 +105,8 @@ const ANIMATIONS = {
   }
 };
 
+const INTRO_FADE_DURATION = 1000;
+
 var _pixiJSLoaded = false;
 var _app = null;
 var _canvas = null;
@@ -112,6 +114,8 @@ var _canvas = null;
 var _pippiScale = 2.2;
 var _pippiXOffset = 200;
 var _pippiYOffset = 578;
+
+const _audio = new AudioPlayer();
 
 function getSpriteFactor(character, data) {
   let scale = 1;

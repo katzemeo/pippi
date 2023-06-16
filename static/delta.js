@@ -1,4 +1,8 @@
 function animateDelta(app, data, callback) {
+  if (_audio) {
+    _audio.stopSound("intro");
+  }
+
   const nextFn = function() {
     animateUpdatedItems(app, data, function() {
       const nextSprint = getNextSprint();
@@ -11,9 +15,10 @@ function animateDelta(app, data, callback) {
         showMessage(app, `NEXT: ${nextSprint}`, SHOW_ALL ? null : fn);
       } else {
         showMessage(app, `Thank You!!!`);
+        writeMessage(`Thank you everyone on the ${_team.squad ?? _team.name} for all your hard work and dedication in making this PI a success!`);
       }
       if (callback) {
-        setTimeout(() => { callback(); }, 3000 / getSpeed());
+        setTimeout(() => { callback(); }, INTRO_FADE_DURATION*2 / getSpeed());
       }
     });
   };
@@ -61,7 +66,7 @@ function animateAddedItems(app, data, callback) {
               stories.push({item: item});
             }
           } else if (item.type === "FEAT") {
-            if (item.status !== "BACKLOG" && item.status !== "PENDING" && (!COMPLETED_ONLY || item.status === "COMPLETED")) {
+            if (item.status !== "BACKLOG" && item.status !== "PENDING" && (!COMPLETED_ONLY || item.status === "INPROGRESS")) {
               feats.push({item: item});
             }
           }
@@ -106,7 +111,9 @@ function animateUpdatedItems(app, data, callback) {
           }
         } else if (item.type === "FEAT") {
           if ((!COMPLETED_ONLY || item.status === "COMPLETED")) {
-            feats.push({item: item, diffs: updated.diffs });
+            if (getDiffEntry(updated.diffs, "status")) {
+              feats.push({item: item, diffs: updated.diffs });
+            }
           }
         }
       } else {
@@ -132,6 +139,15 @@ function animateUpdatedItems(app, data, callback) {
   } else {
     callback();
   }
+}
+
+function getDiffEntry(diffs, key) {
+  for (let i=0; i < diffs.length; i++) {
+    if (diffs[i].key === key) {
+      return diffs[i];
+    }
+  }
+  return null;
 }
 
 function randomInt(min, max) {
@@ -231,21 +247,17 @@ function cycleAddedItems(app, messages, callback) {
       options = { fill: ['#ffffff', '#008800'], stroke: '#001a33'};
       let data;
       if (m.item.type === "FEAT") {
-        writeMessage(`${lookupTeamMember(m.item.assignee)} CLOSED (NEW) ${m.item.jira} - ${m.item.summary}`, true);
+        writeMessage(`${lookupSquadTeamName(m.item.assignee)} CLOSED (NEW) ${m.item.jira} - ${m.item.summary}`, true);
         const spritesMap = getItemAssignees(m.item);
         const assignees = Object.keys(spritesMap);
-        if (assignees.length > 1) {
+        if (assignees.length > 0) {
           data = { assignees: spritesMap };
         } else {
-          if (assignees.length > 0) {
-            data = spritesMap[assignees[0]];
-          } else {
-            data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
-          }
+          data = { totalSP: m.item.estimate ?? 0, sprite: lookupSprite(m.item.assignee) };
         }
       } else {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ COMPLETED (NEW) ${m.item.jira} - ${m.item.summary}`, true);
-        data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
+        data = { totalSP: m.item.estimate ?? 0, sprite: lookupSprite(m.item.assignee) };
       }
 
       showMessage(app, `✱ ${m.item.jira} ✔ ${m.item.summary}`, null, options);      
@@ -257,7 +269,7 @@ function cycleAddedItems(app, messages, callback) {
         const fn = function() {
           let symbols = getCompletedSymbols(m.item, true);
           showMessage(app, `${m.item.type} ✱ ${m.item.jira} ✔ COMPLETED!\n${symbols}`, null, options);
-          queueFunction(() => { cycleAddedItems(app, messages, callback); }, 3000 / getSpeed());
+          queueFunction(() => { cycleAddedItems(app, messages, callback); }, INTRO_FADE_DURATION*1.5 / getSpeed());
         };
         if (data.assignees) {
           animateGroupSPSprint(app, data, fn, { drop: true });
@@ -328,6 +340,9 @@ function lookupSprite(memberID) {
         }
         sprite.character = `icon_${character}`;
         sprite.frames = "icon";
+        if (member.animate) {
+          Object.assign(sprite, member.animate);
+        }
       }
     }
   }
@@ -347,13 +362,8 @@ function cycleMessages(app, messages, callback) {
     const title = `${ctx} in Sprint`;
     writeStats(`${total - messages.length} of ${total} ${ctx}`, title);
     writeSP(m.item.estimate);
-    let status = "";
-    for (let i=0; i < m.diffs.length; i++) {
-      if (m.diffs[i].key === "status") {
-        status = m.diffs[i].new;
-        break;
-      }
-    }
+    let statusDiff = getDiffEntry(m.diffs, "status");
+    let status = statusDiff?.new;
 
     let options = {};
     if (status === "INPROGRESS" && (m.item.type === "STORY" || m.item.type === "SPIKE")) {
@@ -364,21 +374,17 @@ function cycleMessages(app, messages, callback) {
       options = { fill: ['#ffffff', '#008800'], stroke: '#001a33'};
       let data;
       if (m.item.type === "FEAT") {
-        writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ CLOSED ${m.item.jira} - ${m.item.summary}`, true);
+        writeMessage(`${lookupSquadTeamName(m.item.assignee)} ✔ CLOSED ${m.item.jira} - ${m.item.summary}`, true);
         const spritesMap = getItemAssignees(m.item);
         const assignees = Object.keys(spritesMap);
-        if (assignees.length > 1) {
+        if (assignees.length > 0) {
           data = { assignees: spritesMap };
         } else {
-          if (assignees.length > 1) {
-            data = spritesMap[assignees[0]];
-          } else {
-            data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
-          }
+          data = { totalSP: m.item.estimate ?? 0, sprite: lookupSprite(m.item.assignee) };
         }
       } else {
         writeMessage(`${lookupTeamMember(m.item.assignee)} ✔ COMPLETED ${m.item.jira} - ${m.item.summary}`, true);
-        data = { totalSP: m.item.estimate, sprite: lookupSprite(m.item.assignee) };
+        data = { totalSP: m.item.estimate ?? 0, sprite: lookupSprite(m.item.assignee) };
       }
 
       showMessage(app, `${m.item.jira} ✔ ${m.item.summary}`, null, options);
@@ -390,7 +396,7 @@ function cycleMessages(app, messages, callback) {
         const fn = function() {
           let symbols = getCompletedSymbols(m.item, true);
           showMessage(app, `${m.item.type} ${m.item.jira} ✔ COMPLETED!\n${symbols}`, null, options);
-          queueFunction(() => { cycleMessages(app, messages, callback); }, 3000 / getSpeed());
+          queueFunction(() => { cycleMessages(app, messages, callback); }, INTRO_FADE_DURATION*1.5 / getSpeed());
         };
         if (data.assignees) {
           animateGroupSPSprint(app, data, fn, { drop: false });

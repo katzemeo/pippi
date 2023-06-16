@@ -157,18 +157,22 @@ function setupReview(app, data, bgTexture, bgPrevTexture=null, callback) {
   app.renderer.resize(bgWidth, bgHeight);
 
   // Intro animation
+  if (_audio) {
+    _audio.playSound("intro");
+  }
+  
   const bgSprite = new PIXI.Sprite(bgPrevTexture ?? bgTexture);
   bgSprite.scale.x = bgWidth / bgSprite.width;
   bgSprite.scale.y = bgHeight / bgSprite.height;
   app.stage.addChild(bgSprite);
-  fadeSprite(bgSprite, 2000, function() {
+  fadeSprite(bgSprite, INTRO_FADE_DURATION, function() {
       showMessage(app, `Ready`);
-      queueFunction(() => { showMessage(app, `Steady`); }, 2000 / getSpeed());
+      queueFunction(() => { showMessage(app, `Steady`); }, INTRO_FADE_DURATION / getSpeed());
       if (bgPrevTexture) {
         bgSprite.texture = bgTexture;
-        fadeSprite(bgSprite, 2000 / getSpeed(), null, true, 1);
+        fadeSprite(bgSprite, INTRO_FADE_DURATION / getSpeed(), null, true, 1);
       }
-    }, false, 0, 3000 / getSpeed());
+    }, false, 0, (INTRO_FADE_DURATION + 1000) / getSpeed());
   showMessage(app, `${data.squad ?? "My Team"}`);
 
   // Animate sprint delta
@@ -197,12 +201,16 @@ function startReview(app, data, callback) {
     document.title = TEAM_NAME();
     writePrefix(SPRINT(data.sprint));
     showMessage(app, `${SPRINT(data.sprint)}!!`);
-    setTimeout(() => { animateDelta(app, data, callback); }, 2000 / getSpeed());
-  }, { count: 2 });
+    setTimeout(() => { animateDelta(app, data, callback); }, (INTRO_FADE_DURATION + 500) / getSpeed());
+  }, { count: 2 }, INTRO_FADE_DURATION / 80);
 }
 
 function positionSprite(pippi, dim, sprite, factor) {
-  sprite.position.set(pippi.x + (pippi.width/2) + (dim.width/2) - factor.xOffset, pippi.y + (dim.height/2) - (sprite.height/2));
+  //const x = pippi.x + ((pippi.width/2) + (dim.width/2)) / (factor.scale ?? 1) - factor.xOffset;
+  //const y = pippi.y + ((dim.height/2) + (sprite.height/2)) / (factor.scale ?? 1) - factor.yOffset;
+  const x = pippi.x + (pippi.width/2) + (dim.width/2) - factor.xOffset;
+  const y = pippi.y + (dim.height - sprite.height)/2;
+  sprite.position.set(x, y);
 }
 
 function createAnimatedSprite(name, asset, frames) {
@@ -242,6 +250,10 @@ function createCharacterAnimation(animations, character, item, data) {
     texture = PIXI.Texture.from(`assets/pippi.png`);
   }
 
+  if (!data) {
+    data = {};
+  }
+
   // Lookup custom attack animation or use default
   const attack = lookupAttack(animations.length === 0, item, data.totalSP, data.attack ?? "attack");
   asset = PIXI.Assets.cache.get(`assets/spritesheet/${attack}.json`);
@@ -249,7 +261,7 @@ function createCharacterAnimation(animations, character, item, data) {
     const attackData = ANIMATIONS[attack];
     if (attackData) {
       Object.assign(data, attackData);
-    }      
+    }
 
     speedDenominator = 12;
     animationScale = (data.attackScale !== undefined) ? data.attackScale : 1;
@@ -286,23 +298,24 @@ function configureAnimationSpeed(animation, item, speedDenominator) {
     if (item) {
       const est = item.estimate ?? 1;
       if (est >= 8) {
-        speed = 4;
-      } else if (est >= 5) {
         speed = 3;
-      } else if (est >= 3) {
+      } else if (est >= 5) {
         speed = 2;
+      } else if (est >= 3) {
+        speed = 1.5;
       }
     }
     animation.animationSpeed = speed / speedDenominator;
   }
 }
 
-function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
+function animateSPSprint(app, data, callback, options={count: 1, drop: false}, speedMultiple=8) {
   let character = "pippi";
   let frames = null;
   let itemSprite = null;
+  let spriteData = null;
   if (data) {
-    const spriteData = data.sprite;
+    spriteData = data.sprite;
     if (spriteData) {
       character = spriteData.character ?? character;
       frames = spriteData.frames ?? character + "_run";
@@ -334,7 +347,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
     }
   } else {
     const animations = [];
-    pippi = createCharacterAnimation(animations, character, data.item, data);
+    pippi = createCharacterAnimation(animations, character, data.item, data.totalSP, spriteData);
     character = "custom";
     if (animations.length > 0) {
       animation = animations[0];
@@ -374,8 +387,14 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
 
   let multi = data ? data.multi ?? 1 : 1;
   let count = options.count ?? 1;
-  let speed = 8 * getSpeed() * multi;
+  let speed = speedMultiple * getSpeed() * multi;
   let scaleCount = 0;
+
+  let sound = lookupSound(data.item); //randomChoice(["cheer", "clean", "fanfare", "gain", "glad", "happy", "intro", "rock", "tada"]);
+  if (_audio) {
+    _audio.setLoop(true);
+  }
+  
   const tickerCB = delta => {
     if (pippi.x > bgWidth + 200) {
       pippi.x = 50 - factor.xOffset;
@@ -391,6 +410,10 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
         app.stage.removeChild(pippi);
         if (itemSprite) {
           app.stage.removeChild(itemSprite);
+        }
+
+        if (_audio) {
+          _audio.stopSound(sound);
         }
         callback();
       }
@@ -415,6 +438,9 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
         animation.play();
       }
       app.ticker.add(tickerCB);
+      if (_audio) {
+        _audio.playSound(sound);
+      }
     } else {
       itemSprite.y = itemSprite.y + speed * delta;
       speed += 1;
@@ -428,7 +454,27 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}) {
       animation.play();
     }
     app.ticker.add(tickerCB);
+    if (_audio) {
+      _audio.playSound(sound);
+    }
   }
+}
+
+function lookupSound(item) {
+  let sound = "cheer";
+  if (item) {
+    console.log(`lookupSound() - ${item.jira}, ${item.estimate}`);
+    if (item.type === "FEAT" && item.estimate > 8) {
+      sound = randomChoice(["rock", "fanfare", "gain"]);
+    } else {
+      if (item.unblocked) {
+        sound = randomChoice(["glad", "happy"]);
+      } else if (item.new) {
+        sound = randomChoice(["tada", "clean"]);
+      }
+    }
+  }
+  return sound;
 }
 
 function animateGroupSPSprint(app, data, callback, options={count: 1, drop: false}) {
@@ -470,7 +516,7 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
       animations.push(pippi);
       configureAnimationSpeed(animation, data.item, speedDenominator);
     } else {
-      pippi = createCharacterAnimation(animations, character, data.item, charData);
+      pippi = createCharacterAnimation(animations, character, data.item, charData.totalSP, spriteData);
     }
     group.addChild(pippi);
     pippi.x = x;
@@ -485,8 +531,8 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
     dir: 1
   };
   group.position.set(-group.width, bgHeight/2 - group.height);
-  group.scale.x = 3;
-  group.scale.y = 3;
+  group.scale.x = 3; //factor.scale;
+  group.scale.y = 3; //factor.scale;
   group.x += 0;
   group.y += 0;
 
@@ -503,6 +549,11 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
   let speed = 8 * getSpeed();
   let count = 1;
 
+  let sound = lookupSound(data.item); //randomChoice(["cheer", "fanfare", "rock"]);
+  if (_audio) {
+    _audio.setLoop(true);
+  }
+
   const tickerCB = delta => {
     if (group.x > bgWidth + group.width) {
       count--;
@@ -512,6 +563,9 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
         app.stage.removeChild(group);
         if (itemSprite) {
           app.stage.removeChild(itemSprite);
+        }
+        if (_audio) {
+          _audio.stopSound(sound);
         }
         callback();
       }
@@ -532,8 +586,11 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
       app.ticker.remove(t2bTickerCB);
       positionSprite(group, group, itemSprite, factor);
       speed = 8 * getSpeed();
-      animations.map(function(animation) { animation.play(); });
+      animations.map(function(animation) { animation.gotoAndPlay(randomInt(0, animation.totalFrames-1)); });
       app.ticker.add(tickerCB);
+      if (_audio) {
+        _audio.playSound(sound);
+      }
     } else {
       itemSprite.y = itemSprite.y + speed * delta;
       speed += 1;
@@ -543,7 +600,10 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
   if (itemSprite && drop) {
     app.ticker.add(t2bTickerCB);
   } else {
-    animations.map(function(animation) { animation.play(); });
+    animations.map(function(animation) { animation.gotoAndPlay(randomInt(0, animation.totalFrames-1)); });
     app.ticker.add(tickerCB);
+    if (_audio) {
+      _audio.playSound(sound);
+    }
   }
 }
