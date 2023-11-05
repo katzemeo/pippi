@@ -1,4 +1,4 @@
-function fadeSprite(sprite, duration, callback=null, fadeIn=true, cycles=0, initDelay=0, cycleDelay=2000) {
+function fadeSprite(sprite, duration, callback=null, fadeIn=true, cycles=0, initDelay=0, cycleDelay=INTRO_FADE_DURATION) {
   sprite.alpha = fadeIn ? 0 : 1;
   const ticker = PIXI.Ticker.shared;
   const onTick = (deltaTime) => {
@@ -158,6 +158,7 @@ function setupReview(app, data, bgTexture, bgPrevTexture=null, callback) {
 
   // Intro animation
   if (_audio) {
+    _audio.setLoop(false);
     _audio.playSound("intro");
   }
   
@@ -242,7 +243,7 @@ function lookupAttack(first, item, totalSP, defaultAttack) {
   return attack;
 }
 
-function createCharacterAnimation(animations, character, item, data) {
+function createCharacterAnimation(animations, character, item, totalSP, data) {
   let pippi;
   let charScale = 1;
   texture = PIXI.Texture.from(`assets/${character}.png`);
@@ -255,7 +256,7 @@ function createCharacterAnimation(animations, character, item, data) {
   }
 
   // Lookup custom attack animation or use default
-  const attack = lookupAttack(animations.length === 0, item, data.totalSP, data.attack ?? "attack");
+  const attack = lookupAttack(animations.length === 0, item, totalSP, data.attack ?? "attack");
   asset = PIXI.Assets.cache.get(`assets/spritesheet/${attack}.json`);
   if (asset) {
     const attackData = ANIMATIONS[attack];
@@ -391,9 +392,7 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}, s
   let scaleCount = 0;
 
   let sound = lookupSound(data.item); //randomChoice(["cheer", "clean", "fanfare", "gain", "glad", "happy", "intro", "rock", "tada"]);
-  if (_audio) {
-    _audio.setLoop(true);
-  }
+  //let sound = "clean";
   
   const tickerCB = delta => {
     if (pippi.x > bgWidth + 200) {
@@ -438,13 +437,15 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}, s
         animation.play();
       }
       app.ticker.add(tickerCB);
-      if (_audio) {
-        _audio.playSound(sound);
-      }
     } else {
       itemSprite.y = itemSprite.y + speed * delta;
       speed += 1;
     }
+  }
+
+  if (_audio) {
+    _audio.setLoop(false);
+    _audio.playSound(sound);
   }
 
   if (itemSprite && drop) {
@@ -454,9 +455,6 @@ function animateSPSprint(app, data, callback, options={count: 1, drop: false}, s
       animation.play();
     }
     app.ticker.add(tickerCB);
-    if (_audio) {
-      _audio.playSound(sound);
-    }
   }
 }
 
@@ -550,9 +548,6 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
   let count = 1;
 
   let sound = lookupSound(data.item); //randomChoice(["cheer", "fanfare", "rock"]);
-  if (_audio) {
-    _audio.setLoop(true);
-  }
 
   const tickerCB = delta => {
     if (group.x > bgWidth + group.width) {
@@ -597,13 +592,170 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
     }
   }
 
+  if (_audio) {
+    _audio.setLoop(true);
+    _audio.playSound(sound);
+  }
+
   if (itemSprite && drop) {
     app.ticker.add(t2bTickerCB);
   } else {
     animations.map(function(animation) { animation.gotoAndPlay(randomInt(0, animation.totalFrames-1)); });
     app.ticker.add(tickerCB);
-    if (_audio) {
-      _audio.playSound(sound);
+  }
+}
+
+function animateBackground(next, callback=null) {
+  if (PIXI.Assets.cache.get(`assets/spritesheet/${CHAR_NAME}.json`)) {
+    startAnimateBackground(next, callback);
+  } else {
+    PIXI.Assets.load(ASSETS).then(() => {
+      startAnimateBackground(next, callback);
+    });
+  }
+}
+
+function stopAnimateBackground() {
+  const old = document.getElementById("pixiJSBG");
+  if (old) {
+    old.remove();
+  }
+  if (_pixiBGApp) {
+    stopAndDestroy(_pixiBGApp);
+    _pixiBGApp = null;
+  }
+}
+
+function createGradient(next) {
+  const quality = 300;
+  const canvas = document.createElement('canvas');
+  canvas.width = quality;
+  canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+
+  const grd = ctx.createLinearGradient(0, 0, quality, 0);
+  grd.addColorStop(next ? 0 : 1, 'rgba(32, 32, 32, 1.0)');
+  grd.addColorStop(0.5, 'rgba(128, 128, 128, 1.0)');
+  grd.addColorStop(next ? 1 : 0, 'rgba(225, 225, 225, 1.0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, quality, 1);
+
+  return PIXI.Texture.from(canvas);
+}
+
+var _pixiBGApp = null;
+function startAnimateBackground(next, callback) {
+  stopAnimateBackground();
+  const app = new PIXI.Application({
+    resizeTo: window,
+    backgroundAlpha: 0
+  });
+
+  const horizon = app.screen.height / 2 + 150;
+  const texture = createGradient(next, 0.3);
+  let line = new PIXI.Graphics();
+  line.alpha = 0.3;
+  line.beginTextureFill({texture: texture});
+  line.drawRect(next ? 50 : 200, horizon - 60, 50, 1);
+  line.drawRect(next ? 20 : 220, horizon - 10, 75, 1);
+  line.drawRect(next ? 25 : 225, horizon + 20, 45, 1);
+  line.drawRect(0, horizon + 132, 300, 2);
+  line.visible = false;
+
+  let ground = new PIXI.Graphics();
+  ground.alpha = 0.3;
+  ground.beginTextureFill({texture: texture});
+  //ground.drawRect(next ? 50 : 200, horizon - 60, 50, 1);
+  //ground.drawRect(next ? 20 : 220, horizon - 10, 75, 1);
+  //ground.drawRect(next ? 25 : 225, horizon + 20, 45, 1);
+  ground.drawEllipse(150, horizon + 132, 150, 8);
+  ground.visible = false;
+
+  app.stage.addChild(line);
+  app.stage.addChild(ground);
+
+  app.view.id = "pixiJSBG";
+  app.view.style = "position: absolute; top: 0px; left: 0px; pointer-events: none; z-index: 2000;";
+  document.body.appendChild(app.view);
+  _pixiBGApp = app;
+
+  let animations = PIXI.Assets.cache.get(`assets/spritesheet/${CHAR_NAME}.json`).data.animations;
+  const pippi = PIXI.AnimatedSprite.fromFrames(animations[`${CHAR_NAME}_walk`]);
+
+  const blurFilter = new PIXI.BlurFilter(2);
+  const colorMatrix = new PIXI.ColorMatrixFilter();
+  const alphaFilter = new PIXI.AlphaFilter(0.3);
+  colorMatrix.vintage(false);
+  blurFilter.enabled = colorMatrix.enabled = alphaFilter.enabled = false;
+  line.filters = [blurFilter, colorMatrix, alphaFilter];
+  pippi.filters = [blurFilter, colorMatrix, alphaFilter];
+  pippi.interactive = true;
+
+  /*
+  //pippi.anchor.set(0.5);
+  pippi.cursor = 'pointer';
+  pippi.on('pointerdown', onDragStart, pippi);
+
+  let dragTarget = null;
+  app.stage.on('pointerup', onDragEnd);
+  app.stage.on('pointerupoutside', onDragEnd);
+  
+  function onDragMove(event) {
+    if (dragTarget) {
+      dragTarget.parent.toLocal(event.global, null, dragTarget.position);
+    }
+  }
+  
+  function onDragStart() {
+    this.alpha = 0.5;
+    dragTarget = this;
+    app.stage.on('pointermove', onDragMove);
+  }
+  
+  function onDragEnd() {
+    if (dragTarget) {
+      app.stage.off('pointermove', onDragMove);
+      dragTarget.alpha = 1;
+      dragTarget = null;
+    }
+  }
+  */
+
+  // Setup animation at 6 fps.
+  const dir = next ? 1 : -1
+  pippi.animationSpeed = 1 / 6;
+  pippi.scale.x = 1 * dir;
+  pippi.scale.y = 1;
+  pippi.position.x = 100;
+  pippi.y = horizon;
+  pippi.position.x -= _pippiXOffset;
+  pippi.position.y -= 150;
+  pippi.play();
+  app.stage.addChild(pippi);
+  
+  app.stage.hitArea = app.screen;
+  app.stage.interactive = true;
+  let mouseX = next ? app.screen.width + _pippiXOffset : 50;
+  let mouseY = 0;
+  app.stage.on('mousemove', function(event) {
+    mouseX = event.data.global.x;
+    mouseY = event.data.global.y;
+    if (!event.ctrlKey) {
+      return;
+    }
+    if (ANIMATE_MODE === 1) {
+      pippi.play();
+      pippi.rotation = Math.atan2(mouseY - pippi.y, mouseX - pippi.x);
+    } else {
+      pippi.stop();
+    }
+  });
+
+  let multi = 1;
+  const maxMulti = 7;
+  const tickerCB = delta => {
+    if (ANIMATE_MODE !== 1) {
+      return;
     }
   }
 }

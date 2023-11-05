@@ -3,7 +3,7 @@ _teamIcons = { };
 function _loadTeamIcons(members) {
   Object.keys(members).forEach((id) => {
     const m = members[id];
-    if (m.icon && !_teamIcons[m.id]) {
+    if ((_team.loadIcons || m.icon) && !_teamIcons[m.id]) {
       var image = new Image();
       image.onload = function() {
         _teamIcons[m.id] = image;
@@ -577,8 +577,8 @@ function _renderTeamCanvas(canvas, members) {
   });
 
   const squads = [];
-  const sharedSquad = { name: "Floaters", members: [] };
-  const squadMap = { "Floaters" : sharedSquad };
+  const sharedSquad = { name: "FLOATERS", members: [] };
+  const squadMap = { "FLOATERS" : sharedSquad };
   membersArray.forEach((member) => {
     let squad;
     if (member.squad) {
@@ -600,7 +600,7 @@ function _renderTeamCanvas(canvas, members) {
   squads.forEach((squad) => {
     let obj = _createSquad(squad.name, squad.capacity ?? 0);
     obj.myitem = squad;
-    obj.set({left: left, top: top, width: calcFeatSize(squad.capacity ?? squad.members.length * 3)});
+    obj.set({left: left, top: top, width: calcFeatSize(squad.capacity ?? squad.members.length)});
     canvas.add(obj);
     if (squad.members) {
       const childrenTop = _renderChildrenMembers(canvas, squad, obj);

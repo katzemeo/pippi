@@ -4,6 +4,7 @@ const ASSETS = [
   "assets/pippi.png",
   "assets/spritesheet/pippi_run.json",
   "assets/spritesheet/attack.json",
+  "assets/spritesheet/peppi.json",
   /*"assets/spritesheet/water.json",
   "assets/spritesheet/coffee.json",
   "assets/spritesheet/pop.json",
@@ -105,7 +106,7 @@ const ANIMATIONS = {
   }
 };
 
-const INTRO_FADE_DURATION = 1000;
+const INTRO_FADE_DURATION = 800;
 
 var _pixiJSLoaded = false;
 var _app = null;

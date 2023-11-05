@@ -12,13 +12,15 @@ function animateDelta(app, data, callback) {
         if (!callback) {
           callback = fn;
         }
-        showMessage(app, `NEXT: ${nextSprint}`, SHOW_ALL ? null : fn);
+        if (!SHOW_ALL) {
+          showMessage(app, `NEXT: ${nextSprint}`, SHOW_ALL ? null : fn);
+        }
       } else {
         showMessage(app, `Thank You!!!`);
         writeMessage(`Thank you everyone on the ${_team.squad ?? _team.name} for all your hard work and dedication in making this PI a success!`);
       }
       if (callback) {
-        setTimeout(() => { callback(); }, INTRO_FADE_DURATION*2 / getSpeed());
+        setTimeout(() => { callback(); }, INTRO_FADE_DURATION*(SHOW_ALL ? 1:2) / getSpeed());
       }
     });
   };
@@ -66,7 +68,7 @@ function animateAddedItems(app, data, callback) {
               stories.push({item: item});
             }
           } else if (item.type === "FEAT") {
-            if (item.status !== "BACKLOG" && item.status !== "PENDING" && (!COMPLETED_ONLY || item.status === "INPROGRESS")) {
+            if (item.status !== "BACKLOG" && item.status !== "PENDING" && (!COMPLETED_ONLY || item.status !== "INPROGRESS")) {
               feats.push({item: item});
             }
           }
@@ -184,6 +186,10 @@ function animateNewItem(app, item, callback, options) {
         if (count <= 0 || bounce > 1) {
           app.ticker.remove(l2rTickerCB);
           app.stage.removeChild(sprite);
+
+          if (_audio) {
+            _audio.stopSound("tada");
+          }
           if (callback) {
             callback();
           }
@@ -224,6 +230,10 @@ function animateNewItem(app, item, callback, options) {
     }
     app.ticker.add(t2bTickerCB);
   };
+
+  if (_audio) {
+    _audio.playSound("tada");
+  }
   renderTexture(item, itemRendered);
 }
 

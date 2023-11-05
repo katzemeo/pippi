@@ -193,54 +193,66 @@ async function readSprintFile(teamDir: string, sprint: string) {
 
 async function getTeamItems(teamName: string, sprint: string|null = null, delta: boolean = false) {
   let json: any = null;
-  if (env.BASE_DIR) {
-    if (teamName === "MY_TEAM") {
-      teamName = env.TEAM_NAME;
-    }
-    const teamDir = join(env.BASE_DIR, teamName);
-    if (!sprint || sprint === "<PI PLANNING>") {
-      sprint = "BASE";
-    }
 
-    json = await readSprintFile(teamDir, sprint);
-    if (json) {
-      if (!json.sprint) {
-        json.sprint = sprint;
-      } else if (json.sprint !== sprint) {
-        console.warn(`getTeamItems("${teamName}", "${sprint}") - does not match with sprint in file "${json.sprint}"`);
-      }
+  if (teamName === "DEFAULT_TEAM") {
+    teamName = env.TEAM_NAME;
+  }
 
-      // Check available sprints for team and return back
-      const entries: any = [];
-      for await (const dirEntry of Deno.readDir(teamDir)) {
-        if (dirEntry.isFile && dirEntry.name.endsWith(".json")) {
-          entries.push(dirEntry.name.substring(0, dirEntry.name.length - 5));
-        }
-      }
+  if (env.DEFAULT_PI && teamName.indexOf("_PI_") < 0) {
+    teamName += "_" + env.DEFAULT_PI;
+  }
 
-      json.base = {};
-      json.base[teamName] = entries.sort(function (a: any, b: any) {
-        if (a.startsWith("IP") && b.startsWith("IP")) {
-          return a.localeCompare(b);
-        } else if (a.startsWith("IP") && !b.startsWith("IP")) {
-          return 1;
-        } else if (!a.startsWith("IP") && b.startsWith("IP")) {
-          return -1;
-        }
-        return a.localeCompare(b);
-      });
-      if (delta) {
-        json.delta = await computeDelta(json, teamName, teamDir);
-      }
-
-      // Recursively propagate any due dates from child to parent items
-      if (json.items) {
-        json.items.forEach((feat: any) => {
-          propagateDueDate(feat);
-        });  
-      }
+  const teamDir = join(env.BASE_DIR, teamName);
+  const sprints: any = [];
+  for await (const dirEntry of Deno.readDir(teamDir)) {
+    if (dirEntry.isFile && dirEntry.name.endsWith(".json")) {
+      sprints.push(dirEntry.name.substring(0, dirEntry.name.length - 5));
     }
   }
+  sprints.sort(function (a: any, b: any) {
+    if (a.startsWith("IP") && b.startsWith("IP")) {
+      return a.localeCompare(b);
+    } else if (a.startsWith("IP") && !b.startsWith("IP")) {
+      return 1;
+    } else if (!a.startsWith("IP") && b.startsWith("IP")) {
+      return -1;
+    }
+    return a.localeCompare(b);
+  });
+
+  if (sprint === "<PI PLANNING>") {
+    sprint = "BASE";
+  } else if (!sprint) {
+    if (sprints.length > 0) {
+      sprint = sprints[sprints.length -1];
+    } else {
+      sprint = "NONE";
+    }
+  }
+
+  json = await readSprintFile(teamDir, sprint);
+  if (json) {
+    if (!json.sprint) {
+      json.sprint = sprint;
+    } else if (json.sprint !== sprint) {
+      console.warn(`getTeamItems("${teamName}", "${sprint}") - does not match with sprint in file "${json.sprint}"`);
+    }
+
+    json.base = {};
+    json.base[teamName] = sprints;
+    
+    if (delta) {
+      json.delta = await computeDelta(json, teamName, teamDir);
+    }
+
+    // Recursively propagate any due dates from child to parent items
+    if (json.items) {
+      json.items.forEach((feat: any) => {
+        propagateDueDate(feat);
+      });  
+    }
+  }
+
   return json;
 }
 
@@ -270,19 +282,42 @@ export default async (
 
   try {
     let data: any = null;
-    if (env.SERVER_URL) {
-      const url = new URL(`${env.SERVER_URL}/items/${teamName}`);
-      url.search = request.url.search;
-      let res = await fetch(url, {
-        headers: getHeaders()
-      });
-      if (res.status == 201 || res.status == 200) {
-        data = await res.json();
-      }
-    }
 
-    if (!data) {
-      data = await getTeamItems(teamName, sprint, delta);
+    if (teamName === "MY_TEAM") {
+      const teams: any = [];
+      for await (const dirEntry of Deno.readDir(env.BASE_DIR)) {
+        if (dirEntry.isDirectory /* && dirEntry.name.indexOf("_PI_") > 0 */) {
+          try {
+            let json = await getTeamItems(dirEntry.name, sprint, delta);
+            if (json) {
+              teams.push(json);
+            }
+          } catch (err) {
+            // Ignore
+          }
+        }
+      }
+
+      teams.sort(function (a: any, b: any) {
+        return a.name.localeCompare(b.name);
+      });
+
+      data = teams;
+    } else {
+      if (env.SERVER_URL) {
+        const url = new URL(`${env.SERVER_URL}/items/${teamName}`);
+        url.search = request.url.search;
+        let res = await fetch(url, {
+          headers: getHeaders()
+        });
+        if (res.status == 201 || res.status == 200) {
+          data = await res.json();
+        }
+      }
+  
+      if (!data) {
+        data = await getTeamItems(teamName, sprint, delta);
+      }
     }
 
     response.body = data;

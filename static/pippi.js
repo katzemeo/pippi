@@ -66,6 +66,17 @@ window.onload = function () {
   configurePopupListener();
 };
 
+function lookupSquadTeamName(memberID) {
+  let teamrName = "My Team";
+  if (_team.members && memberID) {
+    const member = _team.members[memberID];
+    if (member) {
+      teamrName = member.squad ?? _team.name;
+    }
+  }
+  return teamrName;
+}
+
 function lookupTeamMember(memberID, short=false) {
   let memberName = memberID;
   if (_team.members && memberID) {
@@ -276,7 +287,7 @@ function writeStats(stats, title="") {
 
 function writeSP(sp, title="Estimate") {
   const el = document.getElementById("message-sp");
-  el.innerText = `${sp ?? "?"} SP`;
+  el.innerText = `${sp ?? ""} SP`;
   el.title = title;
 }
 

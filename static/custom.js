@@ -133,8 +133,9 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
       }  
     }
 
-    if (this.myitem && this.myitem.delta) {
-      const delta = this.myitem.delta;
+    const item = this.myitem;
+    if (item && item.delta) {
+      const delta = item.delta;
       ctx.save();
       ctx.globalAlpha = 0.5;
       if (delta === "new") {
@@ -142,6 +143,16 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
       } else if (delta === "updated") {
         ctx.drawImage(_img_asterisk, this.width/2-size, -this.height/2 + size - 7, size, size);
       }
+      ctx.restore();
+    }
+
+    if (item && item.progress) {
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.font = '24px Helvetica';
+      const text = `${PCT(item.progress)}%`;
+      const textMeasurement = ctx.measureText(text);
+      ctx.fillText(text, this.width/2 - textMeasurement.width - size, this.height/2 - 1);
       ctx.restore();
     }
   }

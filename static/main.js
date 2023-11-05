@@ -5,13 +5,14 @@ const JSON_HEADERS = {
   "Content-Type": "application/json",
 };
 
-var ANIMATE_SPEED = 2;
+var ANIMATE_SPEED = 1;
 var SHOW_TEAM = false;
 var SHOW_UNPLANNED = false;
+
 const DEFAULT_SP_DAY_RATE = 0.8;
 const MY_TEAM = "MY TEAM";
 const NOW = new Date();
-const MAX_FRAC_DIGITS = 1;
+const MAX_FRAC_DIGITS = 0;
 const _percentFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: MAX_FRAC_DIGITS }).format;
 const _numFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format;
 const PCT = function (value) { if (!isNaN(value)) { return _percentFormat(value); } return ""; };
@@ -424,6 +425,7 @@ function createRemoveTeam(name, squad) {
 function showMyTeam() {
   var team = {
     squad: MY_TEAM,
+    members: {},
     items: [],
     capacity: 0,
   };
@@ -431,9 +433,23 @@ function showMyTeam() {
   for (const key in _teams) {
     let squad = _teams[key];
     if (!team.date) {
+      team.sprint = squad.sprint;
       team.date = squad.date;
       team.sp_per_day_rate = squad.sp_per_day_rate;
     }
+
+    if (team.sprint !== squad.sprint) {
+      team.sprint = "MY TEAM";
+    }
+
+    if (squad.members) {
+      for (const memberId in squad.members) {
+        if (!team.members[memberId]) {
+          team.members[memberId] = squad.members[memberId];
+        }
+      }
+    }
+
     if (squad.items) {
       team.items.push(...squad.items);
     }
@@ -441,7 +457,7 @@ function showMyTeam() {
     if (squad.capacity && !isNaN(team.capacity)) {
       team.capacity += squad.capacity;
     }
-  };
+  }
 
   setTeam(team);
 }
@@ -1202,6 +1218,17 @@ function lookupTeamMember(memberID, short=false) {
 }
 
 function lookupMemberIcon(member) {
+  if (_team.loadIcons & !member.icon) {
+    let character = member.name.replaceAll(' ', '');
+    if (character.indexOf(".") > 0) {
+      character = character.substring(0, character.indexOf("."));
+    }
+    if (character.indexOf("/") > 0) {
+      character = character.substring(0, character.indexOf("/"));
+    }
+    member.icon = `icon_${character}`;
+  }
+
   if (!member.icon || member.icon === "default") {
     return `/public/usericon.png`;
   }
@@ -1385,7 +1412,7 @@ function renderItems() {
   let msg = `<span class="fs-2">${PCT(remainingPct)}%</span>&nbsp;&nbsp;&nbsp;`;
   el = writeTeam(msg + EFF(totalRemaining)+" SP", "team_remaining");
   if (totalRemaining <= 0 && _items && _items.length > 0) {
-    const label = writeTeam("Items Completed!", "team_status");
+    const label = writeTeam("All Items Completed!", "team_status");
     label.title = "Please schedule demos for completed items!";
     el.style = GREEN;
   } else if (totalRemaining > 0) {
