@@ -240,7 +240,7 @@ async function getTeamItems(teamName: string, sprint: string|null = null, delta:
 
     json.base = {};
     json.base[teamName] = sprints;
-    
+
     if (delta) {
       json.delta = await computeDelta(json, teamName, teamDir);
     }

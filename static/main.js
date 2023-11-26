@@ -7,10 +7,11 @@ const JSON_HEADERS = {
 
 var ANIMATE_SPEED = 1;
 var SHOW_TEAM = false;
-var SHOW_UNPLANNED = false;
+var SHOW_UNPLANNED = true;
 
 const DEFAULT_SP_DAY_RATE = 0.8;
-const MY_TEAM = "MY TEAM";
+const MY_TEAM = "MY_TEAM";
+const MY_SQUAD = "My Team";
 const NOW = new Date();
 const MAX_FRAC_DIGITS = 0;
 const _percentFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: MAX_FRAC_DIGITS }).format;
@@ -20,6 +21,7 @@ const EFF = function (value) { if (!isNaN(value)) { return _numFormat(value); } 
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "America/Toronto";
 const EMPTY_TEAM = {
   name: MY_TEAM,
+  squad: MY_SQUAD,
   sp_per_day_rate: null,
   completed: null,
   remaining: null,
@@ -276,9 +278,13 @@ function processTeamMembers(data, team) {
       team.members = {};
     }
     data.members.forEach((member) => {
-      team.members[member.id] = member;
-      if (!member.role) {
-        member.role = "TM";
+      if (team.members[member.id]) {
+        console.log(`Team member ${member.name} (${member.id}) is already in a squad!`);
+      } else {
+        team.members[member.id] = member;
+        if (!member.role) {
+          member.role = "TM";
+        }
       }
     });
   }
@@ -330,8 +336,8 @@ function processTeamItems(data) {
   }
 
   team.id = data.id ?? team.id;
-  team.name = team.name ?? MY_TEAM;
-  team.squad = data.squad ?? team.squad ?? "My Squad";
+  team.name = data.name ?? team.name ?? MY_TEAM;
+  team.squad = data.squad ?? team.squad ?? MY_SQUAD;
   team.sp_per_day_rate = data.sp_per_day_rate ?? team.sp_per_day_rate ?? _SPDayRate ?? DEFAULT_SP_DAY_RATE;
   team.items = data.items ?? team.items;
   team.capacity = data.capacity ?? team.capacity;
@@ -384,6 +390,7 @@ function refreshTeam(team = _team) {
   // Link items to squad name.
   if (team.items && team.squad) {
     team.items.forEach(item => {
+      item.computed_team = team.name;
       item.computed_squad = team.squad;
       updateItemForTeam(item, team);
     });
@@ -395,7 +402,7 @@ function refreshTeam(team = _team) {
 
   const numTeams = Object.keys(_teams).length;
   if (numTeams > 1) {
-    createTeamMI(el, MY_TEAM, MY_TEAM, false);
+    createTeamMI(el, MY_TEAM, MY_SQUAD, false);
   } else if (numTeams < 1) {
     appendItem(el, `<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#uploadFile">Upload JSON File...</a>`);
   }
@@ -413,23 +420,25 @@ function createTeamMI(el, name, squad, removeOption = true) {
   let a = document.createElement("a");
   a.className = "dropdown-item";
   a.href = `javascript:showTeam("${name}")`;
-  a.innerHTML = removeOption ? createRemoveTeam(name, squad) : `<span class="me-1" title="Show Team">${name}</span>`;
+  a.innerHTML = removeOption ? createRemoveTeam(name, squad) : `<span class="me-1" title="Show ${name}">${squad}</span>`;
   li.appendChild(a);
   el.appendChild(li);
 }
 
 function createRemoveTeam(name, squad) {
-  return `<span class="me-1" title="Show Team">${squad} - ${name}</span><button class="btn btn-muted mx-1" title="Remove Team" onclick="deleteTeam(\'${name}\')"><i class="material-icons custom">delete</i></button>`;
+  return `<span class="me-1" title="Show ${name}">${squad} - ${name}</span><button class="btn btn-muted mx-1" title="Remove Team" onclick="deleteTeam(\'${name}\')"><i class="material-icons custom">delete</i></button>`;
 }
 
 function showMyTeam() {
   var team = {
-    squad: MY_TEAM,
+    name: MY_TEAM,
+    squad: MY_SQUAD,
     members: {},
     items: [],
     capacity: 0,
   };
 
+  // Combine all squads into a single team (assumes no duplicates!)
   for (const key in _teams) {
     let squad = _teams[key];
     if (!team.date) {
@@ -439,12 +448,13 @@ function showMyTeam() {
     }
 
     if (team.sprint !== squad.sprint) {
-      team.sprint = "MY TEAM";
+      team.sprint = MY_TEAM;
     }
 
     if (squad.members) {
       for (const memberId in squad.members) {
-        if (!team.members[memberId]) {
+        // Ensure PO are within their home squad
+        if (!team.members[memberId] || squad.members[memberId].role === "PO") {
           team.members[memberId] = squad.members[memberId];
         }
       }
@@ -832,7 +842,7 @@ function toggleSearchKey(key, toggleId) {
 }
 
 function loadMyTeam() {
-  loadTeamItems(_teamName ?? "MY_TEAM", _sprintParam);
+  loadTeamItems(_teamName ?? MY_TEAM, _sprintParam);
 }
 
 function showSprint(sprint, nextFlag=true) {
@@ -853,7 +863,7 @@ function showPrevious() {
 }
 
 function getNextSprint() {
-  if (_team && _team.base && _team.base[_team.name].length > 0) {
+  if (_team && _team.base && _team.base[_team.name] && _team.base[_team.name].length > 0) {
     let index;
     if (_team.sprint) {
       index = _team.base[_team.name].indexOf(_team.sprint);
@@ -869,12 +879,12 @@ function getNextSprint() {
 
 function getPreviousSprint() {
   if (_team.sprint) {
-    if (_team && _team.base && _team.base[_team.name].length > 0) {
+    if (_team && _team.base && _team.base[_team.name] && _team.base[_team.name].length > 0) {
       let index = _team.base[_team.name].indexOf(_team.sprint);
       if (index > 0) {
         return _team.base[_team.name][index - 1];
       }
-    }  
+    }
   }
   return null;
 }
@@ -905,7 +915,7 @@ function loadTeamItems(teamName, sprint = null) {
           }
         } else {
           refreshTeam();
-        }        
+        }
       });
     } else if (res.status == 204) {
       refreshTeam();
@@ -1183,14 +1193,14 @@ function createIssueLink(item, showDelta=false, description=null) {
   return markup;
 }
 
-function createSummaryLink(item) {
+function createSummaryLink(item, prefixSquad=null) {
   let markup = `<div class="row">`;
   if (item.children) {
     let className = "text-primary";
-    markup += `<div class="col"><a class="${className} text-decoration-none" href="javascript:showChildren('${item.jira}')">${ESC(item.summary)}</a>
+    markup += `<div class="col"><a class="${className} text-decoration-none" href="javascript:showChildren('${item.jira}')">${prefixSquad ? prefixSquad+" - ":""}${ESC(item.summary)}</a>
     </div>`;
   } else {
-    markup += `<div class="col"><nobr>${ESC(item.summary)}</nobr></div>`;
+    markup += `<div class="col"><nobr>${prefixSquad ? prefixSquad+" - ":""}${ESC(item.summary)}</nobr></div>`;
   }
   markup += `</div>`;
 
@@ -1275,16 +1285,16 @@ function renderItems() {
 
       cell = renderCell(row, n);
       cell.className = "text-muted";
-      if (item.computed_squad) {
-        cell.title = item.computed_squad;
+      if (item.release) {
+        cell.title = item.release;
       }
 
       cell = renderCell(row, createSelectionCheck(item));
       cell.className = "text-muted";
 
       cell = renderCell(row, item.theme);
-      if (item.t_shirt_size) {
-        cell.title = item.t_shirt_size;
+      if (item.theme) {
+        cell.title = item.theme;
       }
 
       cell = renderCell(row, createPriorityNotes(item));
@@ -1296,7 +1306,7 @@ function renderItems() {
       cell.setAttribute("data-type", "jira");
       cell.setAttribute("data-value", item.jira);
 
-      cell = renderCell(row, createSummaryLink(item));
+      cell = renderCell(row, createSummaryLink(item, _teamName === MY_TEAM ? item.computed_squad : null));
       if (item.description) {
         cell.title = item.description;
       }
@@ -1308,6 +1318,8 @@ function renderItems() {
           estimate += " (" + EFF(convertToSP(item.estimate, item.unit)) + " SP)";
         }
         cell.title = estimate;
+      } else {
+        cell.title = item.t_shirt_size;
       }
 
       if (item.progress) {

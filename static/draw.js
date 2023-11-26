@@ -111,10 +111,10 @@ function _initDraw(width, height, map) {
         if (obj.myitem && obj.myitem.progress) {
           progress = ` ${PCT(obj.myitem.progress)}%`;
         }
-        writeMessage(`${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}${progress}] - "${obj.summary ?? obj.name ?? ""}"${assigneeText}`);
+        writeMessage(`${obj.name ? obj.name+": " : ""}${obj.id ?? ""} [${obj.status ? obj.status.toUpperCase() : "Unknown"}${progress}] - ${obj.summary ?? obj.role ?? ""}${assigneeText}`);
       }
 
-      if (obj.myitem && !_tooltipGroup || _tooltipGroup.myitem != obj.myitem) {
+      if (obj.myitem && (!_tooltipGroup || _tooltipGroup.myitem != obj.myitem)) {
         if (_tooltipGroup) {
           canvas.remove(_tooltipGroup);
         }
@@ -126,8 +126,7 @@ function _initDraw(width, height, map) {
           fontSize = 8;
         }
 
-        //const tooltip = `${obj.myitem.jira}: ${obj.myitem.summary}`;
-        tooltip = obj.myitem.summary;
+        const tooltip = obj.myitem.summary ?? obj.summary;
         if (tooltip) {
           const text = new fabric.Text(tooltip, {fontSize: fontSize, fontFamily: 'Helvetica', textAlign: 'left', top: 0, left: 5});
           const rect = new fabric.Rect({top: 0, left: 0, width: text.width + 10, height: fontSize+2, fill: 'rgba(194, 64, 64, 0.9)', rx: 4, ry: 4, transparentCorners: true});
@@ -420,13 +419,13 @@ function _renderItemsCanvas(canvas, items) {
   }
 
   items.forEach((item) => {
-    if (!SHOW_UNPLANNED && item.status === "BACKLOG") {
+    if (!SHOW_UNPLANNED && (item.status === "BACKLOG" || item.jira === "UNPLANNED_FEAT" || item.jira.endsWith("_UPF"))) {
       return;
     }
 
     const effort = EFF(convertToSP(item.computed_effort, item.unit));
     let obj;
-    if (item.type === "FEAT") {
+    if (item.type === "FEAT" || item.type === "INIT") {
       obj = _createFeat(item.jira, effort, item.summary);
     } else {
       obj = _createItem(item.jira, effort, item.summary);
@@ -607,6 +606,7 @@ function _renderTeamCanvas(canvas, members) {
       if (childrenTop > obj.top + obj.height * obj.scaleY) {
         obj.set({height: (childrenTop - top + obj.height - 50) / obj.scaleY});
       }
+      obj.set({summary: `Members: ${squad.members.length}`});
     }
     if (obj.height > rowHeight) {
       rowHeight = obj.height;
@@ -642,10 +642,10 @@ function _renderChildrenMembers(canvas, parentItem, parentObject) {
 
   let members = parentItem.members;
   members.forEach((member) => {
-    item = _createMember(member.id, member.role, member.name);
+    item = _createMember(member.id, member.role, member.name, member.sme ? `SME: ${member.sme}` : null);
     item.myitem = member;
     item.parentItem = parentItem;
-    item.parentObject = parentObject;      
+    //item.parentObject = parentObject;      
     item.set({left: left, top: top});
     canvas.add(item);
     nextColRow(item);

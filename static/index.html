@@ -321,15 +321,15 @@
             <tr>
               <th>#</th>
               <th><input class="form-check-input" id="selectTeamCB" title="Select All" onchange="toggleSelection(this.checked)" type="checkbox" value="" /></th>
-              <th onclick="sortBy('theme')">Theme</th>
-              <th onclick="sortBy('priority')">P</th>
-              <th onclick="sortBy('jira')">ID</th>
-              <th onclick="sortBy('summary')">Summary</th>
-              <th onclick="sortBy('type')">Type</th>
-              <th onclick="sortBy('progress')">Progress</th>
-              <th onclick="sortBy('computed_remaining')">Remaining</th>
-              <th onclick="sortBy('status')">Status</th>
-              <th onclick="sortBy('computed_team_pct')">Team %</th>
+              <th id="col_theme" onclick="sortBy('theme')">Theme</th>
+              <th id="col_priority" onclick="sortBy('priority')">P</th>
+              <th id="col_jira" onclick="sortBy('jira')">ID</th>
+              <th id="col_summary" onclick="sortBy('summary')">Summary</th>
+              <th id="col_type" onclick="sortBy('type')">Type</th>
+              <th id="col_progress" onclick="sortBy('progress')">Progress</th>
+              <th id="col_computed_remaining" onclick="sortBy('computed_remaining')">Remaining</th>
+              <th id="col_status" onclick="sortBy('status')">Status</th>
+              <th id="col_computed_team_pct" onclick="sortBy('computed_team_pct')">Team %</th>
             </tr>
           </thead>
           <tbody id="items" />
@@ -347,6 +347,7 @@
             </a>
           </div>
         </div>
+
         <div class="row justify-content-left">
           <div class="col align-self-center" style="margin-top: 0.8em;">
             <nobr class="clickable" onclick="toggleEditSPDayRate('sp_per_day_rate', 'sp_per_day_input')">

@@ -14,8 +14,10 @@ const _img_status = { completed:_img_completed, inprogress:_img_inprogress, bloc
 
 const _img_asterisk = document.createElement('img');
 const _img_add = document.createElement('img');
+const _img_spike = document.createElement('img');
 _img_asterisk.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgOTYgOTYwIDk2MCIgd2lkdGg9IjQ4Ij48cGF0aCBkPSJNNDI2IDkyMFY2NzBMMjEwIDc5NWwtNTUtOTMgMjE3LTEyNi0yMTYtMTI1IDU0LTkzIDIxNiAxMjVWMjMyaDEwOHYyNTFsMjE2LTEyNSA1NCA5My0yMTYgMTI1IDIxNyAxMjYtNTUgOTMtMjE2LTEyNXYyNTBINDI2WiIvPjwvc3ZnPg==";
 _img_add.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgOTYgOTYwIDk2MCIgd2lkdGg9IjQ4Ij48cGF0aCBkPSJNNDUwIDg1NlY2MDZIMjAwdi02MGgyNTBWMjk2aDYwdjI1MGgyNTB2NjBINTEwdjI1MGgtNjBaIi8+PC9zdmc+"
+_img_spike.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00ODAtODBxLTMzIDAtNTYuNS0yMy41VDQwMC0xNjBoMTYwcTAgMzMtMjMuNSA1Ni41VDQ4MC04MFpNMzIwLTIwMHYtODBoMzIwdjgwSDMyMFptMTAtMTIwcS02OS00MS0xMDkuNS0xMTBUMTgwLTU4MHEwLTEyNSA4Ny41LTIxMi41VDQ4MC04ODBxMTI1IDAgMjEyLjUgODcuNVQ3ODAtNTgwcTAgODEtNDAuNSAxNTBUNjMwLTMyMEgzMzBabTI0LTgwaDI1MnE0NS0zMiA2OS41LTc5VDcwMC01ODBxMC05Mi02NC0xNTZ0LTE1Ni02NHEtOTIgMC0xNTYgNjR0LTY0IDE1NnEwIDU0IDI0LjUgMTAxdDY5LjUgNzlabTEyNiAwWiIvPjwvc3ZnPg==";
 
 fabric.Feat = fabric.util.createClass(fabric.Rect, {
   type: 'feat',
@@ -130,7 +132,7 @@ fabric.Feat = fabric.util.createClass(fabric.Rect, {
         ctx.drawImage(_img_status[this.status], this.width/2-size, this.height/2 - size, size, size);
       } else {
         console.log(`Unknown status "${this.status}" in Feat._render(${this.id})`);
-      }  
+      }
     }
 
     const item = this.myitem;
@@ -282,7 +284,7 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
     const startX = -this.width/2 + (details ? 3 : 20);
     const startY = details ? 6 : -25;
 
-    if (effHeight >= 40 && this.myitem && this.myitem.assignee) {
+    if (details && this.myitem && this.myitem.assignee) {
       if (_teamIcons[this.myitem.assignee]) {
         ctx.drawImage(_teamIcons[this.myitem.assignee], startX - 4, -this.height + 49, 32, 32);
       } else {
@@ -296,6 +298,10 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
       ctx.fillText(text, startX, startY);
       //const textMeasurement = ctx.measureText(text);
       //ctx.fillRect(startX, startY + 1, textMeasurement.width, 1);
+
+      if (this.myitem && this.myitem.type === "SPIKE" && !this.myitem.delta) {
+        ctx.drawImage(_img_spike, this.width/2-size, -this.height/2, size, size);
+      }
     }
 
     ctx.font = '32px Helvetica';
@@ -320,7 +326,7 @@ fabric.Item = fabric.util.createClass(fabric.Rect, {
       } else if (delta === "updated") {
         ctx.drawImage(_img_asterisk, this.width/2-size, -this.height/2, size, size);
       }
-      ctx.restore();  
+      ctx.restore();
     }
   }
 });

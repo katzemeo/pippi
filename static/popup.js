@@ -135,7 +135,7 @@ function buildAssigneePopupMenu(menu) {
   }
   Object.keys(_team.members).forEach((id) => {
     const m = _team.members[id];
-    if (m.role === "PO") {
+    if (m.role === "PO" || m.role === "PM") {
       poMembers.push(m);
       if (initPOSet) {
         _po.add(m.id);
@@ -207,6 +207,11 @@ function filterByPO(assigneeId) {
   } else {
     _po.add(assigneeId);
   }
+
+  if (_po.size === 0) {
+    _po = null;
+  }
+
   searchKey();
   refreshMap();
 }
