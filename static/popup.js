@@ -38,8 +38,10 @@ function openPopupMenu(e) {
     buildSprintPopupMenu(menu);
   }
   menu.style.display = 'block';
-  menu.style.left = e.pageX + "px";
-  menu.style.top = e.pageY + "px";
+  const left = (window.innerWidth - e.pageX) < menu.offsetWidth ? e.pageX - menu.offsetWidth : e.pageX;
+  menu.style.left = left + 'px';
+  const top = (window.innerHeight - e.pageY) < menu.offsetHeight ? e.pageY - menu.offsetHeight : e.pageY;
+  menu.style.top = top + 'px';
 
   return false;
 }
@@ -87,7 +89,7 @@ function buildSprintPopupMenu(menu) {
 
   let mi = document.createElement("span");
   mi.className = "list-group-item list-group-item-secondary";
-  mi.innerHTML = `<h5 class="mb-1"><span class="text-decoration-underline">${_team.name ?? _team.squad} Sprint</span></h5>`;
+  mi.innerHTML = `<h5 class="mb-1 text-nowrap"><span class="text-decoration-underline">${_team.name ?? _team.squad} Sprint</span></h5>`;
   menu.appendChild(mi);
 
   const className = "list-group-item list-group-item-action menuitem-padding";
@@ -105,14 +107,16 @@ function buildSprintPopupMenu(menu) {
 
   // Show sprints
   const sprints = _team.base[_team.name];
-  sprints.forEach((v) => {
-    let caption = SPRINT(v);
-    if (v !== _team.sprint) {
-      addMenuItem(menu, caption, "view_kanban", `showSprint("${v}"); return false;`, className);
-    } else {
-      addMenuItem(menu, caption, "view_kanban", null, "list-group-item active menuitem-padding");
-    }
-  });
+  if (sprints) {
+    sprints.forEach((v) => {
+      let caption = SPRINT(v);
+      if (v !== _team.sprint) {
+        addMenuItem(menu, caption, "view_kanban", `showSprint("${v}"); return false;`, className);
+      } else {
+        addMenuItem(menu, caption, "view_kanban", null, "list-group-item active menuitem-padding");
+      }
+    });
+  }
 }
 
 function buildAssigneePopupMenu(menu) {

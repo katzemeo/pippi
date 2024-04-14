@@ -9,12 +9,8 @@ import getItem from "./controllers/getItem.ts";
 import uploadItems from "./controllers/uploadItems.ts";
 import renderItem from "./controllers/renderItem.ts";
 
-const HOST = env.HOST ?? "0.0.0.0";
 const PORT = env.PORT ? parseInt(env.PORT) : 8000;
 const logRequest: boolean = env.SERVER_LOG_REQUEST === "true";
-
-// If true, implement file sending directly instead of using Oak send()
-const DEPLOY_OAK_SEND_WORKAROUND = true;
 
 var ready = false;
 
@@ -46,7 +42,7 @@ router
 
 const app = new Application();
 
-app.use(async (ctx, next) => {
+app.use(async (ctx: any, next: any) => {
   const req: any = ctx.request;
   const res: any = ctx.response;
 
@@ -72,7 +68,7 @@ app.use(router.allowedMethods());
 
 // Log requests and responses (including elapsed time warning if too slow)
 if (logRequest) {
-  app.use(async (ctx, next) => {
+  app.use(async (ctx: any, next: any) => {
     const req: any = ctx.request;
     const res: any = ctx.response;
     const userAndRole = "public";
@@ -87,7 +83,7 @@ if (logRequest) {
   });
 
   // Measure response time and set in header
-  app.use(async (ctx, next) => {
+  app.use(async (ctx: any, next: any) => {
     const start = Date.now();
     try {
       await next();
@@ -143,7 +139,7 @@ function setReponseHeaders(pathname: string, response: any) {
 }
 
 // Send static content (for UI), redirect to home page if error.
-app.use(async (ctx, next) => {
+app.use(async (ctx: any, next: any) => {
   const pathname = ctx.request.url.pathname;
   if (pathname.startsWith("/public")) {
     try {
@@ -204,59 +200,6 @@ function shutdown() {
 }
 */
 
-let server: any;
-if (env.ENABLE_TLS == 'true') {
-  console.info(`Listening on: https://${HOST ?? "localhost"}:${PORT}`);
-  server = Deno.listenTls({
-    hostname: HOST,
-    port: PORT,
-    certFile: env.TLS_CERT_FILE,
-    keyFile: env.TLS_KEY_FILE,
-  });
-} else {
-  console.info(`Listening on: http://${HOST ?? "localhost"}:${PORT}`);
-  server = Deno.listen({
-    hostname: HOST,
-    port: PORT
-  });
-}
-
 ready = true;
-for await (const conn of server) {
-  serveHttp(conn);
-}
 
-async function serveHttp(conn: Deno.Conn) {
-  const requests = Deno.serveHttp(conn);
-  for await (const { request, respondWith } of requests) {
-    // Workaround issue with sending static contents with Deno Deploy and Oak!
-    let { pathname } = new URL(request.url);
-    if (DEPLOY_OAK_SEND_WORKAROUND && pathname.startsWith("/public")) {
-      pathname = pathname.substring(7);
-      let status = "200";
-      try {
-        const file = await Deno.readFile(`${Deno.cwd()}/static/${pathname}`);
-        const response = new Response(file);
-        setReponseHeaders(pathname, response);
-        respondWith(response);
-      } catch (error) {
-        status = "404";
-        respondWith(new Response(null, {
-          status: Status.NotFound
-        }));
-      }
-      if (logRequest) {
-        if (status !== "200") {
-          console.error(`Sending: ${pathname} [${status}]`);
-        } else {
-          console.debug(`Sending: ${pathname} [${status}]`);
-        }
-      }
-    } else {
-      const response = await app.handle(request, conn);
-      if (response) {
-        respondWith(response);
-      }
-    }
-  }
-}
+await app.listen({ port: PORT });

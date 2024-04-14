@@ -492,11 +492,11 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
     return (b.totalSP - a.totalSP);
   });
   assignees.forEach((charData) => {
-    let character = CHAR_NAME;
+    let character = "pippi";
     let frames = null;
     const spriteData = charData.sprite;
     if (spriteData) {
-      character = spriteData.character ?? CHAR_NAME;
+      character = spriteData.character ?? "pippi";
       frames = spriteData.frames;
     }
     if (!frames) {
@@ -606,7 +606,7 @@ function animateGroupSPSprint(app, data, callback, options={count: 1, drop: fals
 }
 
 function animateBackground(next, callback=null) {
-  if (PIXI.Assets.cache.get(`assets/spritesheet/${CHAR_NAME}.json`)) {
+  if (PIXI.Assets.cache.get(`assets/spritesheet/pippi.json`)) {
     startAnimateBackground(next, callback);
   } else {
     PIXI.Assets.load(ASSETS).then(() => {
@@ -679,8 +679,8 @@ function startAnimateBackground(next, callback) {
   document.body.appendChild(app.view);
   _pixiBGApp = app;
 
-  let animations = PIXI.Assets.cache.get(`assets/spritesheet/${CHAR_NAME}.json`).data.animations;
-  const pippi = PIXI.AnimatedSprite.fromFrames(animations[`${CHAR_NAME}_walk`]);
+  let animations = PIXI.Assets.cache.get(`assets/spritesheet/pippi.json`).data.animations;
+  const pippi = PIXI.AnimatedSprite.fromFrames(animations[`pippi_walk`]);
 
   const blurFilter = new PIXI.BlurFilter(2);
   const colorMatrix = new PIXI.ColorMatrixFilter();

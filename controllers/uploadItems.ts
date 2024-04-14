@@ -78,11 +78,11 @@ export default async (
 ) => {
   var data: any;
   try {
-    const body = await request.body({ type: "form-data" });
-    data = await body.value.read({
+    data = await request.body.formData();
+    /*data = await body.value.read({
       maxFilesize: MAX_JSON_FILE_SIZE,
       maxSize: MAX_JSON_FILE_SIZE * 2,
-    });
+    });*/
   } catch (e) {
     console.error(e);
     if (e instanceof TypeError) {
@@ -95,16 +95,15 @@ export default async (
     return;
   }
 
-  if (
-    data.files &&
-    (data.files[0].contentType == "application/json")
-  ) {
-    let uploadFilename = data.files[0].originalName;
+  const jsonFile: any = data.get("jsonFile");
+  if (jsonFile && jsonFile.type === "application/json") {
+    let uploadFilename = jsonFile.name;
     console.debug(`Uploading items "${uploadFilename}" into team`);
-    let json;
-    if (data.files[0].content) {
+    let json: any;
+    const text = await jsonFile.text();
+    if (text) {
       try {
-        json = await parseJSONTeamItems(uploadFilename, new TextDecoder().decode(data.files[0].content));
+        json = await parseJSONTeamItems(uploadFilename, text);
         response.body = json;
       } catch (e) {
         console.error(e);
@@ -113,9 +112,9 @@ export default async (
       }
     } else {
       try {
-        const stat = await Deno.stat(data.files[0].filename);
+        const stat = await Deno.stat(uploadFilename);
         if (stat.size <= MAX_JSON_FILE_SIZE) {
-          json = await parseJSONTeamItems(uploadFilename, await Deno.readTextFile(data.files[0].filename));
+          json = await parseJSONTeamItems(uploadFilename, await Deno.readTextFile(uploadFilename));
           response.body = json;
         } else {
           response.status = 413;
@@ -126,7 +125,7 @@ export default async (
         response.status = 422;
         response.body = { msg: ERR_UPLOAD_FILE_CONTENTS };
       } finally {
-        Deno.remove(data.files[0].filename);
+        Deno.remove(uploadFilename);
       }
     }
   } else {

@@ -186,6 +186,7 @@ const deleteLocalStorage = () => {
     localStorage.removeItem("katzemeo.pippi");
     writeMessage("Removed state from local storage. Refreshing...");
     clearState();
+    _modified = false;
     setTimeout(function() { document.location.reload(true); }, 1000);
   } else {
     writeMessage("Local storage not supported!");
@@ -214,6 +215,7 @@ function sortBy(key) {
   _sortOrders[key] = (!_sortOrders[key] ? 1 : _sortOrders[key]) * -1;
   renderItems();
   _refreshMap = true;
+  _modified = true;
 }
 
 function searchKey(key) {
@@ -228,7 +230,7 @@ function searchKey(key) {
 
 function updateItemForTeam(item, team) {
   if (!item.remaining) {
-    if (item.status == "COMPLETED") {
+    if (item.status === "COMPLETED") {
       item.remaining = 0;
     } else if (item.status !== "INPROGRESS") {
       item.remaining = item.estimate;
@@ -291,6 +293,10 @@ function processTeamMembers(data, team) {
 }
 
 function computeTotalSP(item, sortChildren = true) {
+  if (!item.status) {
+    item.status = "BACKLOG";
+  }
+
   if (item.children) {
     let computed_sp = 0;
     let completed = 0;
@@ -300,6 +306,9 @@ function computeTotalSP(item, sortChildren = true) {
       completed += child.completed ?? 0;
       remaining += child.remaining ?? 0;
     });
+    if (!item.estimate) {
+      item.estimate = computed_sp;
+    }
     item.computed_sp = computed_sp;
     item.completed = completed;
     item.remaining = remaining;
@@ -898,7 +907,7 @@ function loadTeamItems(teamName, sprint = null) {
     method: "GET",
     headers: JSON_HEADERS,
   }).then((res) => {
-    if (res.status == 200) {
+    if (res.status === 200) {
       res.json().then((data) => {
         if (data) {
           if (Array.isArray(data)) {
@@ -917,9 +926,9 @@ function loadTeamItems(teamName, sprint = null) {
           refreshTeam();
         }
       });
-    } else if (res.status == 204) {
+    } else if (res.status === 204) {
       refreshTeam();
-    } else if (res.status == 413 || res.status == 415 || res.status == 422) {
+    } else if (res.status === 413 || res.status === 415 || res.status === 422) {
       res.json().then((data) => {
         window.alert(data.msg);
       });
@@ -987,16 +996,16 @@ async function postItemsFile(blob, fileName, onSuccess) {
     method: 'POST',
     body: formData
   }).then((res) => {
-    if (res.status == 200) {
+    if (res.status === 200) {
       res.json().then((data) => {
         processTeamItems(data);
         onSuccess();
       });
-    } else if (res.status == 413 || res.status == 415 || res.status == 422) {
+    } else if (res.status === 413 || res.status === 415 || res.status === 422) {
       res.json().then((data) => {
         window.alert(data.msg);
       });
-    } else if (res.status == 401) {
+    } else if (res.status === 401) {
       onSuccess();
       showLogin();
     } else {
@@ -1172,7 +1181,7 @@ function createIssueLink(item, showDelta=false, description=null) {
     }
   }
   if (item.jira) {
-    markup += `<div class="col">${createIssueAnchor(item)}</div>`;
+    markup += `<div class="col-auto">${createIssueAnchor(item)}</div>`;
   }
   if (item.due) {
     const due = new Date(item.due);

@@ -2,7 +2,7 @@ class AudioPlayer {
   constructor() {
     this.playing = false;
     this.sounds = {};
-
+    this.setDefaultVolume(0.4);
     const sounds = ["cheer", "clean", "fanfare", "gain", "glad", "happy", "intro", "rock", "tada"];
     sounds.forEach((sound) => {
       this.sounds[sound] = this.loadSoundFile(sound, `assets/audio/${sound}.mp3`);
@@ -11,13 +11,14 @@ class AudioPlayer {
   }
 
   loadSoundFile(name, path) {
-    console.log(`AudioPlayer.loadSoundFile(${name})`);
+    //console.log(`AudioPlayer.loadSoundFile("${name}")`);
     let sound = document.createElement("audio");
-    sound.preload = "auto";    
+    sound.preload = "auto";
     var src = document.createElement("source");
     src.src = path;
     sound.appendChild(src);
     sound.load();
+    sound.volume = this.volume;
     return sound;
   }
 
@@ -25,6 +26,10 @@ class AudioPlayer {
     console.log(`AudioPlayer.playSound(${name}, ${play}) - duration=${duration}`);
     if (play) {
       const sound = this.sounds[name];
+      if (!sound) {
+        console.log(`AudioPlayer.playSound(${name}) - not found!`);
+        return;
+      }
 
       sound.currentTime = 0.01;
       sound.loop = this.loop;
@@ -50,7 +55,14 @@ class AudioPlayer {
     }
   }
 
-  setVolume(volume) {
+  setVolume(name, volume) {
+    const sound = this.sounds[name];
+    if (sound) {
+      sound.volume  = volume;
+    }
+  }
+
+  setDefaultVolume(volume) {
     this.volume = volume;
   }
 

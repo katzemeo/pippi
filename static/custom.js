@@ -337,7 +337,7 @@ fabric.Item.fromObject = function(object, callback) {
 fabric.Item.prototype.hoverCursor = "pointer";
 
 function _createItem(id, sp, summary = null) {
-  const feat = new fabric.Item({
+  const item = new fabric.Item({
     left: 50,
     top: 50,
     width: 120,
@@ -350,5 +350,5 @@ function _createItem(id, sp, summary = null) {
     sp: sp,
     status: "ready"
   });
-  return feat;
+  return item;
 }

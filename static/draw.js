@@ -217,9 +217,10 @@ function handleCanvasPopupMenu(canvas, menu, e) {
     }
   }
   menu.style.display = 'block';
-  menu.style.left = e.pageX+"px";
-  menu.style.top = e.pageY+"px";
-
+  const left = (window.innerWidth - e.pageX) < menu.offsetWidth ? e.pageX - menu.offsetWidth : e.pageX;
+  menu.style.left = left + 'px';
+  const top = (window.innerHeight - e.pageY) < menu.offsetHeight ? e.pageY - menu.offsetHeight : e.pageY;
+  menu.style.top = top + 'px';
   return false;
 };
 
@@ -248,7 +249,7 @@ function buildCanvasPopupMenu(canvas, menu) {
     } else {
       mi.innerHTML = `<i class="material-icons">group</i> Show Team`;
     }
-    menu.appendChild(mi);  
+    menu.appendChild(mi);
   }
 
   // Toggle UNPLANNED/PLANNED Feats
